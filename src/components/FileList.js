@@ -15,7 +15,8 @@ import { ReactComponent as VideoIcon} from '../images/video.svg';
 import { ReactComponent as ImageIcon} from '../images/image.svg';
 import { ReactComponent as TextDocIcon } from '../images/textdoc.svg';
 import { ReactComponent as AudioIcon } from '../images/audio.svg'
-import { ReactComponent as UknownIcon } from '../images/unknown.svg'
+import { ReactComponent as UknownIcon } from '../images/unknown.svg';
+import { ReactComponent as ArrowIcon } from '../images/arrow.svg';
 import FileUpload from './FileUpload';
 import { Toaster, toast } from 'sonner'
 
@@ -47,6 +48,12 @@ const FileList = ({ company, team }) => {
   const start = (currentPage - 1) * filesPerPage;
   const end = start + filesPerPage;
   const slicedFiles = listFile.slice(start, end);
+  const [selected, setSelected] = useState([]);
+  const [nameSort, setNameSort] = useState(true);
+  const [sizeSort, setSizeSort] = useState(true);
+  const [typeSort, setTypeSort] = useState(true);
+
+  const deleteMessage = selected.length === 1 ? `Are you sure you want to delete ${selected[0]}?` : `Are you sure you want to delete these ${selected.length} files?`;
 
   const storageRef = ref(storage, path);
 
@@ -56,18 +63,21 @@ const FileList = ({ company, team }) => {
         setCurrentUser(user);
         if (!hasFetched) {
           getUser(user);
-          fetchUpdatedList();
         }
       } else {
         console.log("User is not authenticated.");
       }
     });
+
+    console.log('useEffect1');
   
     return () => unsubscribe();
   }, [hasFetched]);
 
   useEffect(() =>{
     const listRef = ref(storage, path);
+    console.log('useEffect2');
+    setLoading(true);
   
     listAll(listRef)
       .then(async (res) => {
@@ -76,6 +86,8 @@ const FileList = ({ company, team }) => {
         for (const prefixRef of res.prefixes) {
           files.push({
             name: prefixRef.name,
+            size: 0,
+            type: 'folder',
             isFolder: true,
           });
         }
@@ -96,25 +108,25 @@ const FileList = ({ company, team }) => {
         console.error(error);
         setLoading(false);
       });
-  })
+  }, [path])
 
-  useEffect(() =>{
-    function handleClickEvent(event){
-      if(ellipsisMenuContainer && !ellipsisMenuContainer.contains(event.target)){
-        setEllipsisMenuVisible(false);
+
+  function handleListClick(file) {
+    setSelected((prevSelected) => {
+      if (prevSelected.includes(file)) {
+        return prevSelected.filter((selectedFile) => selectedFile !== file);
+      } else {
+        return [...prevSelected, file];
       }
-    }
+    });
 
-    document.addEventListener('mousedown', handleClickEvent);
+    console.log(selected);
+  };
 
-    return () => {
-      document.removeEventListener('mousedown', handleClickEvent)
-    }
-  }, []);
 
-  
   const fetchUpdatedList = () => {
     const listRef = ref(storage, path);
+    setLoading(true);
   
     listAll(listRef)
       .then(async (res) => {
@@ -123,6 +135,8 @@ const FileList = ({ company, team }) => {
         for (const prefixRef of res.prefixes) {
           files.push({
             name: prefixRef.name,
+            size: 0,
+            type: 'folder',
             isFolder: true,
           });
         }
@@ -143,7 +157,7 @@ const FileList = ({ company, team }) => {
         console.error(error);
         setLoading(false);
       });
-  };  
+  };
 
   const getUser = async (user) => {
     try{
@@ -183,54 +197,68 @@ const FileList = ({ company, team }) => {
     );
   }
 
-  function downloadFile(fileName) {
-    return new Promise((resolve, reject) => {
-      const storageRef = ref(storage, path + `/${fileName}`);
-      setEllipsisMenuVisible(false);
-
-      getDownloadURL(storageRef)
-        .then((url) => {
-          const xhr = new XMLHttpRequest();
-          xhr.responseType = 'blob';
+  function downloadFiles(fileNames) {
+    const downloadPromises = fileNames.map((fileName) => {
+      return new Promise((resolve, reject) => {
+        const storageRef = ref(storage, path + `/${fileName}`);
   
-          xhr.onload = () => {
-            if (xhr.status === 200) {
-              const blob = xhr.response;
-              const objectURL = URL.createObjectURL(blob);
+        getDownloadURL(storageRef)
+          .then((url) => {
+            const xhr = new XMLHttpRequest();
+            xhr.responseType = 'blob';
   
-              const a = document.createElement('a');
-              a.href = objectURL;
-              a.download = fileName;
-              a.style.display = 'none';
+            xhr.onload = () => {
+              if (xhr.status === 200) {
+                const blob = xhr.response;
+                const objectURL = URL.createObjectURL(blob);
   
-              document.body.appendChild(a);
-              a.click();
+                const a = document.createElement('a');
+                a.href = objectURL;
+                a.download = fileName;
   
-              document.body.removeChild(a);
-              URL.revokeObjectURL(objectURL);
+                document.body.appendChild(a);
+                a.click();
   
-              resolve({ name: fileName });
-            } else {
-              reject(new Error(`Failed to download ${fileName}`));
-            }
-          };
+                document.body.removeChild(a);
   
-          xhr.open('GET', url);
-          xhr.send();
-        })
-        .catch((error) => {
-          reject(error);
-        });
+                URL.revokeObjectURL(objectURL);
+                resolve({ name: fileName });
+              } else {
+                reject(new Error(`Failed to download ${fileName}`));
+              }
+            };
+  
+            xhr.onerror = () => {
+              reject(new Error(`Network error while downloading ${fileName}`));
+            };
+  
+            xhr.open('GET', url);
+            xhr.send();
+          })
+          .catch((error) => {
+            reject(error);
+          });
+      });
     });
+  
+    return Promise.allSettled(downloadPromises);
   }
-
-  const handleDownload = (fileName) => {
-    toast.promise(downloadFile(fileName), {
+  
+  const handleDownload = (fileNames) => {
+    toast.promise(downloadFiles(fileNames), {
       loading: 'Downloading...',
-      success: (data) => `${data.name} has been downloaded successfully`,
-      error: 'Error downloading file',
+      success: (results) => {
+        const successDownloads = results
+          .filter((result) => result.status === 'fulfilled')
+          .map((result) => result.value.name);
+  
+        return `${successDownloads.length} files downloaded successfully`;
+      },
+      error: 'Error downloading files',
     });
   };
+  
+  
 
   function fileTypeRename(typeName){
     if("application/vnd.openxmlformats-officedocument.wordprocessingml.document" === typeName){
@@ -248,31 +276,34 @@ const FileList = ({ company, team }) => {
     return typeName;
   }
 
-  function handleEllipsisClick(event, file) {
-    event.preventDefault();
-  
-    if (selectedFile === file.name) {
-      setEllipsisMenuPosition(null);
-      setEllipsisMenuVisible(false);
-      setSelectedFile(null);
-    } else {
-      const ellipsisIcon = event.currentTarget;
-      const ellipsisIconRect = ellipsisIcon.getBoundingClientRect();
-  
-      // Adjust the top and left based on the icon's position
-      const top = event.clientY - 90; // Adjust this value if needed
-      const left = event.clientX - 330; // Adjust this value if needed
-  
-      setEllipsisMenuPosition({ top, left });
-      setSelectedFile(file);
-      setEllipsisMenuVisible(true);
-    }
+  function handleFileClick(file){
+    setSelectedFile(file);
   }
+
+  // function handleEllipsisClick(event, file) {
+  //   event.preventDefault();
+  
+  //   if (selectedFile === file.name) {
+  //     setEllipsisMenuPosition(null);
+  //     setEllipsisMenuVisible(false);
+  //     setSelectedFile(null);
+  //   } else {
+  //     const ellipsisIcon = event.currentTarget;
+  //     const ellipsisIconRect = ellipsisIcon.getBoundingClientRect();
+  
+  //     const top = event.clientY - 90; // Adjust this value if needed
+  //     const left = event.clientX - 330; // Adjust this value if needed
+  
+  //     setEllipsisMenuPosition({ top, left });
+  //     setSelectedFile(file);
+  //     setEllipsisMenuVisible(!ellipsisMenuVisible);
+  //   }
+  // }
   
 
   function onViewClick(file){
     setView(!view);
-    const storageRef = ref(storage, `team/sample/${file.name}`);
+    const storageRef = ref(storage, path + `/${file.name}`);
     getDownloadURL(storageRef).then((url) =>{
       console.log(url);
       setUrl(url);
@@ -302,8 +333,8 @@ const FileList = ({ company, team }) => {
       
       pushNotifications(userTeam, userAvatar, userName, userRole, notificationData.time, notificationData.type, notificationData.content);
 
-      console.log(`Folder '${folderName}' created.`);
       fetchUpdatedList();
+      toast.success(`Folder '${folderName}' created.`);
       setFolderCreate(false);
     } catch (error) {
       console.error('Error creating folder:', error);
@@ -313,10 +344,12 @@ const FileList = ({ company, team }) => {
   function handleFolderClicks(folderName) {
     const newFolder = [...currentFolder, folderName];
     setCurrentFolder(newFolder);
-  }  
+  }
+  
 
   function goBack() {
     if (currentFolder.length > 1) {
+      setLoading(true);
       const newFolder = [...currentFolder];
       newFolder.pop();
       setCurrentFolder(newFolder);
@@ -334,35 +367,49 @@ const FileList = ({ company, team }) => {
 
   function deleteConfirmation(){
     setDeleteMenu(true);
-    setEllipsisMenuVisible(false);
   }
 
   function closeDelete(){
     setDeleteMenu(false);
   }
 
-  function deleteFile(fileName){
-    const storageRef = ref(storage, path + `/${fileName}`);
-
-    const notificationData = {
-      time: new Date(),
-      type: "file",
-      content: "deleted "+ fileName
-    }
-
-    deleteObject(storageRef)
+  function deleteFile(fileNames) {
+    Promise.all(
+      fileNames.map((fileName) => {
+        const storageRef = ref(storage, path + `/${fileName}`);
+        const notificationData = {
+          time: new Date(),
+          type: "file",
+          content: "deleted " + fileName,
+        };
+  
+        return deleteObject(storageRef)
+          .then(() => {
+            fetchUpdatedList();
+            pushNotifications(
+              userTeam,
+              userAvatar,
+              userName,
+              userRole,
+              notificationData.time,
+              notificationData.type,
+              notificationData.content
+            );
+            toast.success(`File ${fileName} deleted successfully.`);
+          })
+          .catch((error) => {
+            console.error(`Error deleting file ${fileName}: ${error.message}`);
+          });
+      })
+    )
       .then(() => {
-        console.log(`File ${fileName} deleted successfully.`);
-        fetchUpdatedList();
-
-        pushNotifications(userTeam, userAvatar, userName, userRole, notificationData.time, notificationData.type, notificationData.content);
-
         setDeleteMenu(false);
       })
       .catch((error) => {
-        console.error(`Error deleting file ${fileName}: ${error.message}`);
+        console.error(`Error deleting files: ${error.message}`);
       });
   }
+  
 
   const toggleFileUpload = () => {
     setFileUploadActive(!fileUploadActive);
@@ -401,7 +448,43 @@ const FileList = ({ company, team }) => {
     }
   }
 
+  const sortFiles = (files, sortType, isReverse) => {
+    let sortedFiles = [...files];
   
+    if (sortType === 'name') {
+      sortedFiles = sortedFiles.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortType === 'size') {
+      sortedFiles = sortedFiles.sort((a, b) => a.size - b.size);
+    } else if (sortType === 'type') {
+      sortedFiles = sortedFiles.sort((a, b) => (a.type || '').localeCompare(b.type || ''));
+    }
+  
+    if (isReverse) {
+      sortedFiles.reverse();
+    }
+  
+    return sortedFiles;
+  };
+
+  const handleSort = (sortType) => {
+    let isReverse = false;
+
+    if (sortType === 'name') {
+      isReverse = !nameSort;
+      setNameSort(!nameSort);
+    } else if (sortType === 'size') {
+      isReverse = !sizeSort;
+      setSizeSort(!sizeSort);
+    } else if (sortType === 'type') {
+      isReverse = !typeSort;
+      setTypeSort(!typeSort);
+    }
+
+    const sortedList = sortFiles(listFile, sortType, isReverse);
+    setListFile(sortedList);
+  };
+  
+
   return (
   <>
   <button onClick={toggleFileUpload} title="Upload" class="fixed z-50 bottom-10 right-8 bg-blue-600 w-20 h-20 rounded-full drop-shadow-lg flex justify-center items-center text-white text-4xl hover:bg-blue-700 hover:drop-shadow-2xl">
@@ -410,43 +493,93 @@ const FileList = ({ company, team }) => {
     </span>
   </button>
 
-  <FileUpload isVisible={fileUploadActive} company={company} team={team} path={path} uploadSuccess={fetchUpdatedList}/>
+  <FileUpload isVisible={fileUploadActive} company={company} team={team} path={path} uploadSuccess={() => {fetchUpdatedList(); setFileUploadActive(false);}}/>
   <Toaster richColors expand={false} position="bottom-center"/>
 
-  {view ?  <div className='p-5 bg-slate-50 rounded-lg drop-shadow-lg m-5'>
-      <div className='flex items-center'>
-          <button className='flex items-center justify-center bg-blue-500 p-3 text-white rounded hover:bg-blue-700' onClick={() => openFolderMenu()}>
-            <div>
-              <PlusIcon/>
-            </div>
-            Create Folder
-          </button>
-          <h1 className='ml-4 text-left cursor-pointer' onClick={() => goBack()}>{renamePath(path)}</h1>
-      </div>
+  {view ?  
+  <div className='p-5 bg-slate-50 rounded-lg drop-shadow-lg m-5'>
+      {selected.length === 0 ? (
+          <div className='flex items-center'>
+            <button className='flex items-center justify-center bg-blue-500 p-3 text-white rounded hover:bg-blue-700' onClick={() => openFolderMenu()}>
+              <div>
+                <PlusIcon/>
+              </div>
+              Create Folder
+            </button>
+            <h1 className='ml-4 text-left cursor-pointer' onClick={() => goBack()}>{renamePath(path)}</h1>
+          </div>
+      ) : (
+        selected.length === 1 ? (
+          <div className='flex items-center justify-end gap-2'>
+            <button className='w-1/12 flex items-center justify-center bg-blue-500 p-3 text-white rounded hover:bg-blue-700' onClick={() => {setSelected([])}}>
+              Clear Selection
+            </button>
+            <button className='w-1/12 flex items-center justify-center bg-blue-500 p-3 text-white rounded hover:bg-red-500' onClick={() => setDeleteMenu(true)}>
+              Delete
+            </button>
+            <button className='w-1/12 flex items-center justify-center bg-blue-500 p-3 text-white rounded hover:bg-blue-700' onClick={() => {handleDownload(selected)}}>
+              Download
+            </button>
+            <button className='w-1/12 flex items-center justify-center bg-blue-500 p-3 text-white rounded hover:bg-blue-700' onClick={() => setShowFileDetail(true)}>
+              File Details
+            </button>
+            <button className='w-1/12 flex items-center justify-center bg-blue-500 p-3 text-white rounded hover:bg-blue-700' onClick={() => onViewClick(selectedFile)}>
+              Preview File
+            </button>
+          </div>
+        ):(
+          <div className='flex items-center justify-end gap-2'>
+            <button className='w-1/12 flex items-center justify-center bg-blue-500 p-3 text-white rounded hover:bg-blue-700' onClick={() => {setSelected([])}}>
+              Clear Selection
+            </button>
+            <button className='w-1/12 flex items-center justify-center bg-blue-500 p-3 text-white rounded hover:bg-red-500' onClick={() => deleteConfirmation()}>
+              Delete
+            </button>
+            <button className='w-1/12 flex items-center justify-center bg-blue-500 p-3 text-white rounded hover:bg-blue-700' onClick={() => {handleDownload(selected)}}>
+              Download
+            </button>
+            <button className='opacity-50 w-1/12 flex items-center justify-center bg-blue-500 p-3 text-white rounded cursor-default'  onClick={() => toast.error('Sorry, cant view multiple file details.')}>
+              File Details
+            </button>
+            <button className='opacity-50 w-1/12 flex items-center justify-center bg-blue-500 p-3 text-white rounded cursor-default' onClick={() => toast.error('Sorry, cant preview multiple files.')}>
+              Preview File
+            </button>
+          </div>
+        )
+      )}
       <div id='file-header' className='h-full w-full grid grid-cols-3 pl-2 pt-3 pb-2 border-b border-gray-300'>
         <div className='flex'>
           <h1>Name</h1>
+          <div className={`text-slate-600 mr-2 cursor-pointer ${nameSort ? '': 'transform scale-y-[-1]'}`} onClick={() => handleSort('name')}>
+            <ArrowIcon/> 
+          </div> 
         </div>
         <div className='flex'>
           <h1>Size</h1>
+          <div className={`text-slate-600 mr-2 cursor-pointer ${sizeSort ? '': 'transform scale-y-[-1]'}`} onClick={() => handleSort('size')}>
+            <ArrowIcon/> 
+          </div>
         </div>
         <div className='flex'>
           <h1>Type</h1>
+          <div className={`text-slate-600 mr-2 cursor-pointer ${typeSort ? '': 'transform scale-y-[-1]'}`} onClick={() => handleSort('type')}>
+            <ArrowIcon/> 
+          </div>
         </div>
       </div>
       {loading ? (
-        <p className='flex'>LOADING...</p>
+        <div>
+          {Array.from({ length: 5 }).map((_, index) => (
+          <div key={index} className='flex-none animate-pulse'>
+            <div className='bg-slate-50 p-4 rounded-lg shadow-md'>
+              <div className='h-3/4 w-3/4 bg-gray-300 rounded mb-2'></div>
+            </div>
+          </div>))}
+        </div>
       ) : (
         <ul>
           {slicedFiles.length === 0 ? (
-              <div>
-                {Array.from({ length: 5 }).map((_, index) => (
-                <div key={index} className='flex-none animate-pulse'>
-                  <div className='bg-slate-50 p-4 rounded-lg shadow-md'>
-                    <div className='h-3/4 w-3/4 bg-gray-300 rounded mb-2'></div>
-                  </div>
-                </div>))}
-              </div>
+              <div> NO FILES AVAILABLE </div>
             ) : (
               slicedFiles.map((prefix, index) => (
                 <div>
@@ -467,7 +600,9 @@ const FileList = ({ company, team }) => {
                         </div>
                       </div>
                     ):(
-                      <div className='h-full w-full grid grid-cols-3 pl-2 pt-3 pb-3 border-b border-gray-300 hover:bg-slate-100 transition duration-300 ease-in-out'>
+                      <div className={`h-full w-full grid grid-cols-3 pl-2 pt-3 pb-3 border-b border-gray-300  transition duration-300 ease-in-out cursor-pointer ${selected.includes(prefix.name) ? 'bg-slate-300 hover:bg-slate-300' : 'hover:bg-slate-100'}`} 
+                        onClick={() => {handleListClick(prefix.name); handleFileClick(prefix);
+                      }} >
                         <div className='flex'>
                           <div className='text-slate-600 mr-2'>
                             {renderIcon(prefix.type)} 
@@ -479,9 +614,9 @@ const FileList = ({ company, team }) => {
                         </div>
                         <div className='flex justify-between'>
                           <h1>{fileTypeRename(prefix.type)}</h1>
-                          <div className='cursor-pointer pr-10' onClick={(e) => handleEllipsisClick(e, prefix)}>
+                          {/* <div className='cursor-pointer pr-10' onClick={(e) => handleEllipsisClick(e, prefix)}>
                             <Ellipsis/>
-                          </div>
+                          </div> */}
                         </div>
                       </div>
                     )}
@@ -491,6 +626,7 @@ const FileList = ({ company, team }) => {
             )}
         </ul>
         )}
+
 
         <div className="flex items-center justify-center mt-4">
           {Array.from({ length: Math.ceil(listFile.length / filesPerPage) }, (_, index) => (
@@ -511,7 +647,7 @@ const FileList = ({ company, team }) => {
                 <div className="border-0 rounded-lg shadow-lg relative flex flex-col w-full bg-white outline-none focus:outline-none">
                   <div className="flex items-start justify-between p-5 border-b border-solid border-slate-200 rounded-t">
                     <h3 className="text-3xl font-semibold">
-                      {selectedFile.name}
+                      {selected}
                     </h3>
                     <button
                       className="p-1 ml-auto bg-transparent border-0 text-black opacity-5 float-right text-3xl leading-none font-semibold outline-none focus:outline-none"
@@ -554,7 +690,7 @@ const FileList = ({ company, team }) => {
           </>
         )}
 
-        {ellipsisMenuVisible && selectedFile && (
+        {/* {ellipsisMenuVisible && selectedFile && (
           <div className="fixed top-0 left-0 transform -translate-x-1/2 -translate-y-1/2 items-center justify-center" style={{ top: ellipsisMenuPosition.top, left: ellipsisMenuPosition.left }}>
             <div className="bg-white border rounded shadow-md p-2">
               <ul>
@@ -565,14 +701,14 @@ const FileList = ({ company, team }) => {
               </ul>
             </div>
           </div>
-        )}
+        )} */}
 
-        {deleteMenu && selectedFile && (
+        {deleteMenu && selected && (
           <div className='fixed top-0 left-0 w-full h-full flex items-center justify-center z-50 drop-shadow-lg'>
             <div className='bg-white dark:bg-gray-900 rounded-lg p-4 shadow-md'>
-              <h2 className='text-lg font-semibold mb-4'>Are you sure deleting {selectedFile.name}?</h2>
-              <button className='bg-red-500 text-white py-2 px-4 rounded mr-2 hover:bg-blue-600' onClick={() => deleteFile(selectedFile.name)}>Yes</button>
-              <button className='bg-gray-300 text-gray-700 py-2 px-4 rounded hover-bg-gray-400' onClick={() => closeDelete()}>Cancel</button>
+                <h2 className='text-lg font-semibold mb-4'>{deleteMessage}</h2>
+                <button className='bg-red-500 text-white py-2 px-4 rounded mr-2 hover:bg-blue-600' onClick={() => deleteFile(selected)}>Yes</button>
+                <button className='bg-gray-300 text-gray-700 py-2 px-4 rounded hover-bg-gray-400' onClick={() => closeDelete()}>Cancel</button>
             </div>
           </div>
         )}
@@ -709,6 +845,11 @@ const FileList = ({ company, team }) => {
     <button className="px-4 py-2 cursor-pointer" onClick={closeView}>Go back</button>
     </>
   }
+  <div className='m-5 flex flex-col justify-start items-start'>
+    <small>Drag and drop several files or choose file to upload in the Privo (use the floating icon). <br/></small>
+    <small>Click on one or more files to download or delete them. <br/></small>
+    <small>View details or preview a file one at a time. <br/></small>
+  </div>
   </>
   )
 }
