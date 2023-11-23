@@ -15,7 +15,8 @@ import { ReactComponent as VideoIcon} from '../images/video.svg';
 import { ReactComponent as ImageIcon} from '../images/image.svg';
 import { ReactComponent as TextDocIcon } from '../images/textdoc.svg';
 import { ReactComponent as AudioIcon } from '../images/audio.svg'
-import { ReactComponent as UknownIcon } from '../images/unknown.svg'
+import { ReactComponent as UknownIcon } from '../images/unknown.svg';
+import { ReactComponent as ArrowIcon } from '../images/arrow.svg';
 import FileUpload from './FileUpload';
 import { Toaster, toast } from 'sonner'
 
@@ -48,6 +49,9 @@ const FileList = ({ company, team }) => {
   const end = start + filesPerPage;
   const slicedFiles = listFile.slice(start, end);
   const [selected, setSelected] = useState([]);
+  const [nameSort, setNameSort] = useState(true);
+  const [sizeSort, setSizeSort] = useState(true);
+  const [typeSort, setTypeSort] = useState(true);
 
   const deleteMessage = selected.length === 1 ? `Are you sure you want to delete ${selected[0]}?` : `Are you sure you want to delete these ${selected.length} files?`;
 
@@ -82,6 +86,8 @@ const FileList = ({ company, team }) => {
         for (const prefixRef of res.prefixes) {
           files.push({
             name: prefixRef.name,
+            size: 0,
+            type: 'folder',
             isFolder: true,
           });
         }
@@ -129,6 +135,8 @@ const FileList = ({ company, team }) => {
         for (const prefixRef of res.prefixes) {
           files.push({
             name: prefixRef.name,
+            size: 0,
+            type: 'folder',
             isFolder: true,
           });
         }
@@ -149,7 +157,7 @@ const FileList = ({ company, team }) => {
         console.error(error);
         setLoading(false);
       });
-  };  
+  };
 
   const getUser = async (user) => {
     try{
@@ -440,7 +448,43 @@ const FileList = ({ company, team }) => {
     }
   }
 
+  const sortFiles = (files, sortType, isReverse) => {
+    let sortedFiles = [...files];
   
+    if (sortType === 'name') {
+      sortedFiles = sortedFiles.sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortType === 'size') {
+      sortedFiles = sortedFiles.sort((a, b) => a.size - b.size);
+    } else if (sortType === 'type') {
+      sortedFiles = sortedFiles.sort((a, b) => (a.type || '').localeCompare(b.type || ''));
+    }
+  
+    if (isReverse) {
+      sortedFiles.reverse();
+    }
+  
+    return sortedFiles;
+  };
+
+  const handleSort = (sortType) => {
+    let isReverse = false;
+
+    if (sortType === 'name') {
+      isReverse = !nameSort;
+      setNameSort(!nameSort);
+    } else if (sortType === 'size') {
+      isReverse = !sizeSort;
+      setSizeSort(!sizeSort);
+    } else if (sortType === 'type') {
+      isReverse = !typeSort;
+      setTypeSort(!typeSort);
+    }
+
+    const sortedList = sortFiles(listFile, sortType, isReverse);
+    setListFile(sortedList);
+  };
+  
+
   return (
   <>
   <button onClick={toggleFileUpload} title="Upload" class="fixed z-50 bottom-10 right-8 bg-blue-600 w-20 h-20 rounded-full drop-shadow-lg flex justify-center items-center text-white text-4xl hover:bg-blue-700 hover:drop-shadow-2xl">
@@ -506,12 +550,21 @@ const FileList = ({ company, team }) => {
       <div id='file-header' className='h-full w-full grid grid-cols-3 pl-2 pt-3 pb-2 border-b border-gray-300'>
         <div className='flex'>
           <h1>Name</h1>
+          <div className={`text-slate-600 mr-2 cursor-pointer ${nameSort ? '': 'transform scale-y-[-1]'}`} onClick={() => handleSort('name')}>
+            <ArrowIcon/> 
+          </div> 
         </div>
         <div className='flex'>
           <h1>Size</h1>
+          <div className={`text-slate-600 mr-2 cursor-pointer ${sizeSort ? '': 'transform scale-y-[-1]'}`} onClick={() => handleSort('size')}>
+            <ArrowIcon/> 
+          </div>
         </div>
         <div className='flex'>
           <h1>Type</h1>
+          <div className={`text-slate-600 mr-2 cursor-pointer ${typeSort ? '': 'transform scale-y-[-1]'}`} onClick={() => handleSort('type')}>
+            <ArrowIcon/> 
+          </div>
         </div>
       </div>
       {loading ? (
