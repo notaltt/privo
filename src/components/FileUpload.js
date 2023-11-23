@@ -140,6 +140,7 @@ export default function FileUpload({isVisible, company, team, path, uploadSucces
           pushNotifications(userTeam, userAvatar, userName, userRole, notificationData.time, notificationData.type, notificationData.content);
 
           toast.success('Files are uploaded.')
+          
         })
         .catch((error) => {
           console.error("Error while uploading files: " + error);
