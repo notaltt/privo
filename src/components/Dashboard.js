@@ -252,6 +252,7 @@ export default function Dashboard({user}){
                                     <li key={task.id} className="py-4">
                                     <div className="bg-white rounded-lg shadow-md p-4">
                                         <h1 className="text-xl font-semibold">{task.taskName}</h1>
+                                        <p className="text-gray-600">{task.date}</p>
                                         <p className="text-gray-600">{task.team}</p>
                                     </div>
                                     </li>
