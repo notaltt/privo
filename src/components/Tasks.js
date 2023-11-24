@@ -43,7 +43,7 @@ function Tasks({ user }) {
   //   db.collection('tasks').onSnapshot(snapshot => {
   //     const fetchedTasks = snapshot.docs.map(doc => ({
   //       id: doc.id,
-  //       taskName: doc.data().taskName, // Replace with your actual field names
+  //       taskName: doc.data().taskName,
   //       assignedUser: doc.data().assignedUser,
   //       date: doc.data().date,
   //       description: doc.data().description
