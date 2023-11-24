@@ -39,6 +39,10 @@ function Tasks({ user }) {
   const handleUserChange = (event) => {
     setSelectedUserEmail(event.target.value);
   };
+  
+  const hasTasksForDate = (checkDate) => {
+    return tasks.some(task => task.date === checkDate.format('YYYY-MM-DD'));
+  };
 
   const fetchTasks = async (teamId) => {
     setIsLoading(true);
@@ -370,38 +374,34 @@ function Tasks({ user }) {
               })}
             </div>
 
-            <div className=" grid grid-cols-7 ">
-              {generateDate(today.month(), today.year()).map(
-                ({ date, currentMonth, today }, index) => {
-                  return (
-                    <div
-                      key={index}
-                      className="p-2 text-center h-14 grid place-content-center text-sm border-t"
+            <div className=" grid grid-cols-7">
+              {generateDate(today.month(), today.year()).map(({ date, currentMonth, today }, index) => {
+                const dateHasTasks = hasTasksForDate(date);
+                
+                return (
+                  <div
+                    key={index}
+                    className="p-2 text-center h-14 grid place-content-center text-sm border-t"
+                  >
+                    <h1
+                      className={cn(
+                        currentMonth ? "" : "text-gray-400",
+                        today ? "bg-red-600 text-white" : "",
+                        selectDate.toDate().toDateString() === date.toDate().toDateString()
+                          ? "bg-black text-white"
+                          : "",
+                        dateHasTasks ? "bg-gray-300" : "",
+                        "h-10 w-10 rounded-full grid place-content-center hover:bg-black hover:text-white transition-all cursor-pointer select-none"
+                      )}
+                      onClick={() => {
+                        setSelectDate(date);
+                      }}
                     >
-                      <h1
-                        className={cn(
-                          currentMonth ? "" : "text-gray-400",
-                          today
-                            ? "bg-red-600 text-white"
-                            : "",
-                          selectDate
-                            .toDate()
-                            .toDateString() ===
-                            date.toDate().toDateString()
-                            ? "bg-black text-white"
-                            : "",
-                          "h-10 w-10 rounded-full grid place-content-center hover:bg-black hover:text-white transition-all cursor-pointer select-none"
-                        )}
-                        onClick={() => {
-                          setSelectDate(date);
-                        }}
-                      >
-                        {date.date()}
-                      </h1>
-                    </div>
-                  );
-                }
-              )}
+                      {date.date()}
+                    </h1>
+                  </div>
+                );
+              })}
             </div>
           </div>
           <div className="h-96 w-96 sm:px-5">
