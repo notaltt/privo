@@ -174,8 +174,10 @@ function Tasks({ user }) {
           return { id: companyDoc.id, ...companyData, totalMembers };
         });
   
-        setJoinedTeams(teams); // Update the state variable to hold the fetched teams
-        console.log("AVAILABLE", teams);
+        const defaultOption = { id: '', teamName: 'Please select team' }; // Creating a default option
+        const teamsWithDefault = [defaultOption, ...teams]; // Adding the default option to the teams array
+        setJoinedTeams(teamsWithDefault); // Update the state variable with the default option
+        console.log("AVAILABLE", teamsWithDefault);
       } else {
         console.log("User snapshot does not exist.");
       }
