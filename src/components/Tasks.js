@@ -41,46 +41,47 @@ function Tasks({ user }) {
   };
 
   const fetchTasks = async (teamId) => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       const q = query(collection(db, 'tasks'), where('team', '==', teamId));
       const snapshot = await getDocs(q);
-      const fetchedTasks = snapshot.docs.map((doc) => ({
+    
+      const fetchedTasks = snapshot.docs.map(doc => ({
         id: doc.id,
         taskName: doc.data().taskName,
         assignedUser: doc.data().assignedUser,
         date: doc.data().date,
-        description: doc.data().description,
+        description: doc.data().description
       }));
+    
       setTasks(fetchedTasks);
-      filterTasksBySelectedDate(selectDate, fetchedTasks);
     } catch (error) {
       console.error("Error fetching tasks:", error);
     } finally {
       setIsLoading(false);
     }
   };
-
-  const filterTasksBySelectedDate = useCallback(
-    (selectedDate, tasks) => {
-      if (tasks && tasks.length > 0) {
-        const formattedDate = selectedDate.format('YYYY-MM-DD');
-        const filteredTasks = tasks.filter((task) => task.date === formattedDate);
-        setTasksForSelectedDate(filteredTasks);
-      }
-    },
-    []
-  );
-
+  
   useEffect(() => {
     if (selectedTeam) {
       fetchTasks(selectedTeam);
     } else {
-      setTasks([]);
-      setTasksForSelectedDate([]);
+      setTasks([]); // Clear tasks if no team is selected
     }
   }, [selectedTeam]);
+
+  const filterTasksBySelectedDate = (selectedDate) => {
+    const formattedDate = selectedDate.format('YYYY-MM-DD');
+    const filteredTasks = tasks.filter(task => task.date === formattedDate);
   
+    setTasksForSelectedDate(filteredTasks);
+  };
+  
+  useEffect(() => {
+    if (selectDate) {
+      filterTasksBySelectedDate(selectDate);
+    }
+  }, [selectDate, tasks]);
   
 
   useEffect(() => {
@@ -271,15 +272,9 @@ function Tasks({ user }) {
                 value={selectedTeam}
                 onChange={(e) => {
                   const selectedId = e.target.value;
-                  setSelectedTeam(selectedId); // Update the selected team ID
-                  if (selectedId) {
-                    fetchTasks(selectedId); // Fetch tasks for the new selected team
-                    fetchUsers(currentUser, selectedId); // Fetch users for the new selected team
-                  } else {
-                    setTasks([]); // Clear tasks if no team is selected
-                    setTasksForSelectedDate([]); // Also clear the tasks for the selected date
-                    setUsers([]); // Clear users if no team is selected
-                  }
+                  const team = joinedTeams.find((team) => team.id === selectedId);
+                  setSelectedTeam(team ? team.id : ''); // Set the selected team ID
+                  fetchUsers(currentUser, team ? team.id : ''); // Fetch users for the selected team
                 }}
                 id="team-select"
               >
