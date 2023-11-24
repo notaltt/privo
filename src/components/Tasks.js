@@ -40,42 +40,47 @@ function Tasks({ user }) {
     setSelectedUserEmail(event.target.value);
   };
 
-  const fetchTasks = async () => {
+  const fetchTasks = async (teamId) => {
     try {
-      const tasksRef = collection(db, 'tasks');
-      const snapshot = await getDocs(tasksRef);
-  
-      const fetchedTasks = snapshot.docs.map(doc => ({
+      setIsLoading(true);
+      const q = query(collection(db, 'tasks'), where('team', '==', teamId));
+      const snapshot = await getDocs(q);
+      const fetchedTasks = snapshot.docs.map((doc) => ({
         id: doc.id,
         taskName: doc.data().taskName,
         assignedUser: doc.data().assignedUser,
         date: doc.data().date,
-        description: doc.data().description 
+        description: doc.data().description,
       }));
-  
-      setTasks(fetchedTasks); 
-      console.log("Tasks fetched successfully:", fetchedTasks);
+      setTasks(fetchedTasks);
+      filterTasksBySelectedDate(selectDate, fetchedTasks);
     } catch (error) {
       console.error("Error fetching tasks:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
-  
-  useEffect(() => {
-    fetchTasks();
-  }, []);
 
-  const filterTasksBySelectedDate = (selectedDate) => {
-    const formattedDate = selectedDate.format('YYYY-MM-DD');
-    const filteredTasks = tasks.filter(task => task.date === formattedDate);
-  
-    setTasksForSelectedDate(filteredTasks);
-  };
-  
+  const filterTasksBySelectedDate = useCallback(
+    (selectedDate, tasks) => {
+      if (tasks && tasks.length > 0) {
+        const formattedDate = selectedDate.format('YYYY-MM-DD');
+        const filteredTasks = tasks.filter((task) => task.date === formattedDate);
+        setTasksForSelectedDate(filteredTasks);
+      }
+    },
+    []
+  );
+
   useEffect(() => {
-    if (selectDate) {
-      filterTasksBySelectedDate(selectDate);
+    if (selectedTeam) {
+      fetchTasks(selectedTeam);
+    } else {
+      setTasks([]);
+      setTasksForSelectedDate([]);
     }
-  }, [selectDate, tasks]);
+  }, [selectedTeam]);
+  
   
 
   useEffect(() => {
@@ -266,9 +271,15 @@ function Tasks({ user }) {
                 value={selectedTeam}
                 onChange={(e) => {
                   const selectedId = e.target.value;
-                  const team = joinedTeams.find((team) => team.id === selectedId);
-                  setSelectedTeam(team ? team.id : ''); // Set the selected team ID
-                  fetchUsers(currentUser, team ? team.id : ''); // Fetch users for the selected team
+                  setSelectedTeam(selectedId); // Update the selected team ID
+                  if (selectedId) {
+                    fetchTasks(selectedId); // Fetch tasks for the new selected team
+                    fetchUsers(currentUser, selectedId); // Fetch users for the new selected team
+                  } else {
+                    setTasks([]); // Clear tasks if no team is selected
+                    setTasksForSelectedDate([]); // Also clear the tasks for the selected date
+                    setUsers([]); // Clear users if no team is selected
+                  }
                 }}
                 id="team-select"
               >
@@ -314,7 +325,6 @@ function Tasks({ user }) {
                     <h3 className="font-semibold">{task.taskName}</h3>
                     <p>Assigned to: {task.assignedUser}</p>
                     <p>Date: {task.date}</p>
-                    <p>Description: {task.description}</p>
                   </div>
                 ))}
               </div>
@@ -405,8 +415,6 @@ function Tasks({ user }) {
             tasksForSelectedDate.map((task, index) => (
               <div key={index} className="border rounded p-2 mb-4">
                 <h3 className="font-semibold">{task.taskName}</h3>
-                <p>Assigned to: {task.assignedUser}</p>
-                <p>Date: {task.date}</p>
                 <p>Description: {task.description}</p>
               </div>
             ))
