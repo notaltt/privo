@@ -7,7 +7,7 @@ import dayjs from "dayjs";
 import cn from '../components-additional/cn'
 import { GrFormNext, GrFormPrevious } from "react-icons/gr";
 import { firestore as db } from './firebase'; 
-import { getDoc, doc, collection, getDocs, query, where, addDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, where, query, doc,  getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from '../../src/components/firebase';
 
@@ -33,13 +33,28 @@ function Tasks({ user }) {
   const [taskDate, setTaskDate] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
   const [hasFetched, setHasFetched] = useState(false);
-  const [team, setTeam] = useState();
+  const [tasks, setTasks] = useState([]);
 
   const handleUserChange = (event) => {
     setSelectedUserEmail(event.target.value);
   };
 
-   useEffect(() => {
+  // useEffect(() => {
+  //   db.collection('tasks').onSnapshot(snapshot => {
+  //     const fetchedTasks = snapshot.docs.map(doc => ({
+  //       id: doc.id,
+  //       taskName: doc.data().taskName, // Replace with your actual field names
+  //       assignedUser: doc.data().assignedUser,
+  //       date: doc.data().date,
+  //       description: doc.data().description
+  //     }));
+  //     setTasks(fetchedTasks);
+  //   });
+  // }, []);
+
+
+
+  useEffect(() => {
     const fetchData = async (user) => {
       if (user) {
         getUser(user);
@@ -52,14 +67,14 @@ function Tasks({ user }) {
         console.log("User is not authenticated.");
       }
     };
-  
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (!hasFetched) {
         setCurrentUser(user);
         fetchData(user);
       }
     });
-  
+
     return () => unsubscribe();
   }, [hasFetched]);
   
@@ -165,7 +180,9 @@ function Tasks({ user }) {
     }
   };
 
-  const addTask = async () => {
+  const addTask = async (event) => {
+    event.preventDefault();
+    
     try {
       if (!selectedTeam || !taskName || !taskDate || !selectedUserEmail || !taskDescription) {
         console.error('Incomplete task details. Please fill in all fields.');
@@ -196,20 +213,6 @@ function Tasks({ user }) {
   }
 
   const openModal = (task) => {
-    // Check if task data exists
-    if (task) {
-      // Set initial values for the task-related states
-      setTaskName(task.taskName || '');
-      setTaskDate(task.date || '');
-      setSelectedUserEmail(task.assignedUser || '');
-      setTaskDescription(task.description || '');
-    } else {
-      // If no task data, set default values or clear the fields
-      setTaskName('');
-      setTaskDate('');
-      setSelectedUserEmail('');
-      setTaskDescription('');
-    }
     setIsModalOpen(true);
   };
 
@@ -234,15 +237,14 @@ function Tasks({ user }) {
               <div className=" relative w-40 justify-center md:w-full max-w-xl mr-6 focus-within:text-purple-500">
               <div>
               <select
-                className="w-full pl-8 pr-2 text-large dark:text-black text-black placeholder-blue-600 bg-gray-200 border-0 rounded-md dark:placeholder-gray-500 dark:focus:shadow-outline-blue dark:focus:placeholder-gray-600 
-                dark:bg-gray-200 focus:placeholder-gray-500 focus:bg-white focus:border-red-300 focus:outline-none focus:shadow-outline-purple focus:text-blue-500 form-input"
+                className="w-full pl-8 pr-2 text-large dark:text-black ..."
                 aria-label="Choose Team"
                 value={selectedTeam}
                 onChange={(e) => {
                   const selectedId = e.target.value;
                   const team = joinedTeams.find((team) => team.id === selectedId);
                   setSelectedTeam(team ? team.id : ''); // Set the selected team ID
-                  fetchUsers(currentUser); // Fetch users for the selected team
+                  fetchUsers(currentUser, team ? team.id : ''); // Fetch users for the selected team
                 }}
                 id="team-select"
               >
@@ -279,27 +281,23 @@ function Tasks({ user }) {
       <main>
         {/* <div className="mt-5 flex gap-10 sm:divide-x justify-center sm:w-1/2 mx-auto h-screen items-center sm:flex-row flex-col"> */}
         <div className="mt-5 ml-10 flex sm:flex-row flex-col sm:divide-x w-full justify-center h-screen gap-10">
-          <div className="w-96 h-96 ">
-            <h1 className="font-semibold">Added Tasks</h1>
-            <div className="mt-4 border rounded p-2">
-              Make Tasks
+        {/* <div className="w-96 h-96">
+          <h1 className="font-semibold">Recently Added Tasks</h1>
+          {tasks.length > 0 ? (
+            <div className="mt-4">
+              {tasks.map((task, index) => (
+                <div key={index} className="border rounded p-2 mb-4">
+                  <h3 className="font-semibold">{task.taskName}</h3>
+                  <p>Assigned to: {task.assignedUser}</p>
+                  <p>Date: {task.date}</p>
+                  <p>Description: {task.description}</p>
+                </div>
+              ))}
             </div>
-            <div className="mt-4 border rounded p-2">
-              Make Tasks
-            </div>
-            <div className="mt-4 border rounded p-2">
-              Make Tasks
-            </div>
-            <div className="mt-4 border rounded p-2">
-              Make Tasks
-            </div>
-            <div className="mt-4 border rounded p-2">
-              Make Tasks
-            </div>
-            <div className="mt-4 border rounded p-2">
-              Make Tasks
-            </div>
-          </div>
+          ) : (
+            <p>No tasks added yet.</p>
+          )}
+        </div> */}
           <div className=" w-96 h-96">
             <div className="flex justify-between items-center">
               <h1 className="select-none font-semibold">
