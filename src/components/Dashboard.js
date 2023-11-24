@@ -9,20 +9,22 @@ import { collection, getDocs, where, query, doc, updateDoc, getDoc } from "fireb
 import { auth } from '../../src/components/firebase';
 import { pushNotifications } from './notifications';
 
-
-export default function Dashboard(){
+export default function Dashboard({user}){
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isErrorModalOpen, setisErrorModalOpen] = useState(false);
     const [hasFetched, setHasFetched] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
     const [userAvatar, setUserAvatar] = useState(null);
     const [userName, setUserName] = useState(null);
+    const [userEmail, setUserEmail] = useState(null);
     const [userRole, setUserRole] = useState(null);
     const [userNotification, setUserNotification] = useState([]);
     const [timePassed, setTimePassed] = useState(null);
     const [loading, setLoading] = useState(true);
     const [userManager, setUserManger] = useState(false);
     const [newAnnouncement, setNewAnnouncement] = useState('');
+    const [tasks, setTasks] = useState([]);
+    
 
 
     const toggleSidebar = () => {
@@ -37,6 +39,7 @@ export default function Dashboard(){
             team: 'Computer Engineering'
         }
     ];
+
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -55,38 +58,68 @@ export default function Dashboard(){
           
         // Unsubscribe from the listener when the component unmounts
         return () => unsubscribe();
-      }, [hasFetched]);
+    }, [hasFetched]);
 
-      const getUser = async (user) => {
-        try{
-          const userData = doc(db, 'users', user.uid);
-          const userDoc = await getDoc(userData);
-    
-          if(userDoc.exists()){
-            const userData = userDoc.data();
-            const userAvatar = userData.avatar;
-            const userName = userData.name;
-            const userRole = userData.role;
-            setUserName(userName);
-            setUserAvatar(userAvatar);
-            setUserRole(userRole);
+    const getUser = async (user) => {
+    try{
+        const userData = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userData);
 
-            if(userRole === 'manager'){
-                setUserManger(true);
-            }else{
-                setUserManger(false);
-            }
-          }
-        }catch(e){
-    
+        if(userDoc.exists()){
+        const userData = userDoc.data();
+        const userAvatar = userData.avatar;
+        const userName = userData.name;
+        const userRole = userData.role;
+        const userEmail = userData.email;
+        setUserName(userName);
+        setUserAvatar(userAvatar);
+        setUserRole(userRole);
+        setUserEmail(userEmail);
+
+        if(userRole === 'manager'){
+            setUserManger(true);
+        }else{
+            setUserManger(false);
         }
-      };
+        }
+    }catch(e){
 
-      const calculateTimePassed = (timestamp) => {
+        }
+    };
+
+    useEffect(() => {
+
+    const fetchTasks = async () => {
+        try {
+            const q = query(
+                collection(db, 'tasks'),
+                where('assignedUser', '==', userEmail) // Filter by the assigned user's email
+            );
+            const snapshot = await getDocs(q);
+    
+            const fetchedTasks = snapshot.docs.map(doc => ({
+                id: doc.id,
+                taskName: doc.data().taskName,
+                assignedUser: doc.data().assignedUser,
+                date: doc.data().date,
+                description: doc.data().description
+            }));
+    
+            setTasks(fetchedTasks);
+        } catch (error) {
+            console.error("Error fetching tasks:", error);
+        }
+    };
+    
+    fetchTasks();
+
+    }, [user]);
+
+    const calculateTimePassed = (timestamp) => {
         const currentTime = new Date();
         const notificationTime = new Date(timestamp);
         const timeDifference = currentTime - notificationTime;
-      
+
         if (timeDifference < 1000) {
             return "just now";
         } else if (timeDifference < 60000) {
@@ -100,50 +133,50 @@ export default function Dashboard(){
             const daysAgo = Math.floor(timeDifference / 86400000);
             return daysAgo + (daysAgo === 1 ? " day ago" : " days ago");
         }        
-      };      
+    };      
 
-      const fetchNotifications = async (user) => {
+    const fetchNotifications = async (user) => {
         const notification = [];
         try{
-          const userData = doc(db, 'users', user.uid);
-          const userDoc = await getDoc(userData);
+        const userData = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userData);
 
-          if(userDoc.exists()){
+        if(userDoc.exists()){
             const userData = userDoc.data();
             const userTeams = userData.teams || [];
 
             for (const team of userTeams) {
                 const notificationRef = doc(db, 'notifications', team);
                 const notificationSnapshot = await getDoc(notificationRef);
-              
+            
                 if (notificationSnapshot.exists()) {
-                  const data = notificationSnapshot.data();
-                  if (data.notificationData && Array.isArray(data.notificationData)) {
+                const data = notificationSnapshot.data();
+                if (data.notificationData && Array.isArray(data.notificationData)) {
                     notification.push(...data.notificationData);
-                  }
+                }
                 }
             }
 
             notification.sort((a, b) => new Date(b.time) - new Date(a.time));
-          }
+        }
         } catch(e){
             console.log(e)
         }
         setUserNotification(notification);
         setLoading(false);
-      };
-    
-      const openErrorModal = () => {
-        setisErrorModalOpen(true);
-      };
-    
-      const closeErrorModal = () => {
-        setisErrorModalOpen(false);
-      };
+    };
 
-      const addAnnouncement = () => {
+    const openErrorModal = () => {
+        setisErrorModalOpen(true);
+    };
+
+    const closeErrorModal = () => {
+        setisErrorModalOpen(false);
+    };
+
+    const addAnnouncement = () => {
         
-      };
+    };
     
     return(
         <div className="flex dark:bg-gray-950 bg-white">  
@@ -215,7 +248,22 @@ export default function Dashboard(){
                                 ))}
                             </div>
                             <div className='p-5 bg-slate-50 h-1/3 rounded-xl'>
-                                <h1 className='text-left text-3xl font-bold dark:text-white text-gray-700'>Tasks</h1>
+                            {tasks.length > 0 ? (
+                            <ul>
+                                {tasks.map((task) => (
+                                <li key={task.id}>
+                                    <div>
+                                    <h3>{task.taskName}</h3>
+                                    <p>Assigned to: {task.assignedUser}</p>
+                                    <p>Date: {task.date}</p>
+                                    <p>Description: {task.description}</p>
+                                    </div>
+                                </li>
+                                ))}
+                            </ul>
+                            ) : (
+                            <p>No tasks assigned to you.</p>
+                            )}
                             </div>
                         </div>
                         {loading ? (

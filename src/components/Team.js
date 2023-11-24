@@ -27,6 +27,7 @@ export default function Team() {
   const [userName, setUserName] = useState(null);
   const [userRole, setUserRole] = useState(null);
   const [openMembers, setOpenMembers] = useState(false);
+  const [manageMembers, setManageMembers] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -104,6 +105,10 @@ export default function Team() {
   
   function seeMembers(){
     setOpenMembers(!openMembers);
+  }
+  
+  function manageMem(){
+    setManageMembers(!manageMembers);
   }
 
 
@@ -199,23 +204,23 @@ export default function Team() {
     if (!selectedUser) {
       setErrorModalMessage('Please select a user before adding.');
       openErrorModal();
-      return; // Exit the function to prevent further execution
+      return; 
     }
   
     try {
-      // Reference to the team document
+      
       const teamCollection = collection(db, 'team');
       const teamDoc = doc(teamCollection, selectedId);
       const newMember = selectedUser;
   
-      // Reference to the user collection
+      
       const userCollection = collection(db, 'users');
       
-      // Query for the selected user by their name (you can change this based on your database structure)
+      
       const userQuery = query(userCollection, where('email', '==', selectedUser));
       const userSnapshot = await getDocs(userQuery);
   
-      // Get the current teams of the selected user
+      
       const currentTeams = userSnapshot.docs[0].data().teams || [];
   
       // Check if the selectedUser is already a member
@@ -242,7 +247,7 @@ export default function Team() {
       const userDoc = doc(userCollection, userSnapshot.docs[0].id);
       await updateDoc(userDoc, { teams: currentTeams });
   
-      // Send a notification
+      
       const notificationData = {
         time: new Date(),
         type: "team",
@@ -499,7 +504,37 @@ export default function Team() {
             <div className="min-h-screen w-1/4 overflow-y-auto max-h-screen">
               <ul className="divide-y dark:divide-gray-100 divide-gray-100 px-2 dark:bg-gray-800 bg-white-100 list-disc">
                 <h2 className="text-3xl font-bold dark:text-white text-gray-700 py-8 sm:py-12 lg:py-8 border-b-2 border-gray-500">Settings</h2>
-                {isManager && (
+                <div className="h-1/4 flex flex-wrap-row justify-center items-center">
+                {isManager? (
+                  <>
+                    <button onClick={handleInviteUser} className="bg-sky-300 text-white py-1 px-1 rounded m-2">Invite User</button>
+                    <button onClick={manageMem} className={`py-1 px-2 rounded m-2 ${manageMembers ? 'bg-white border border-blue-500 text-blue-500 ' : 'bg-sky-300 text-white '}`}>Manage Members</button>
+                    
+                    <button
+                  onClick={seeMembers}
+                  className={`py-1 px-2 rounded m-2 ${openMembers ? 'bg-white border border-blue-500 text-blue-500 ' : 'bg-sky-300 text-white'}`}
+                >
+                  View Members
+                </button>
+                  </>
+                ):(
+                  <>
+                    <button
+                  onClick={seeMembers}
+                  className={`py-1 px-2 rounded m-2 ${openMembers ? 'bg-white border border-blue-500 text-blue-500 ' : 'bg-sky-300 text-white '}`}
+                >
+                  View Members
+                </button>
+                  </>
+                )}
+
+                
+
+
+                
+                
+              </div>
+                {manageMembers && (
                 <>           
                 <label for='users' className="p-4 m-4">Choose user:</label>
 
@@ -512,21 +547,14 @@ export default function Team() {
                       </option>
                     ))}
                   </select>
+
+                  <button onClick={handleAddUser} className="bg-sky-300 text-white py-1 px-1 rounded m-2">Add User</button>
+                  <button onClick={handleRemoveUser} className="bg-sky-300 text-white py-1 px-1 rounded m-2">Remove User</button>
                   
                 </div>
                 </>
               )}
-              <div className="h-1/4 flex flex-wrap-row">
-                <button onClick={handleInviteUser} className="bg-sky-300 text-white py-1 px-1 rounded m-2">Invite User</button>
-                <button onClick={handleAddUser} className="bg-sky-300 text-white py-1 px-1 rounded m-2">Add User</button>
-                <button onClick={handleRemoveUser} className="bg-sky-300 text-white py-1 px-1 rounded m-2">Remove User</button>
-                <button
-                  onClick={seeMembers}
-                  className={`py-1 px-2 rounded m-2 ${openMembers ? 'bg-white border border-blue-500 text-blue-500' : 'bg-sky-300 text-white'}`}
-                >
-                  Members
-                </button>
-              </div>
+              
               {member && member.length > 0? (
                 <>
                 <div>
