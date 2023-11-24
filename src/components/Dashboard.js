@@ -40,69 +40,71 @@ export default function Dashboard({user}){
         }
     ];
 
-
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-          if (user) {
-            setCurrentUser(user);
-            if (!hasFetched) {
-              getUser(user)
-              fetchNotifications(user);
-              setHasFetched(true);
-
+            if (user) {
+                setCurrentUser(user);
+                if (!hasFetched) {
+                    getUser(user);
+                    fetchNotifications(user);
+                    setHasFetched(true);
+                }
+            } else {
+                console.log("User is not authenticated.");
             }
-          } else {
-            console.log("User is not authenticated.");
-          }
         });
-          
+
         // Unsubscribe from the listener when the component unmounts
         return () => unsubscribe();
     }, [hasFetched]);
 
     const getUser = async (user) => {
-    try{
-        const userData = doc(db, 'users', user.uid);
-        const userDoc = await getDoc(userData);
-
-        if(userDoc.exists()){
-        const userData = userDoc.data();
-        const userAvatar = userData.avatar;
-        const userName = userData.name;
-        const userRole = userData.role;
-        const userEmail = userData.email;
-        setUserName(userName);
-        setUserAvatar(userAvatar);
-        setUserRole(userRole);
-        setUserEmail(userEmail);
-
-        if(userRole === 'manager'){
-            setUserManger(true);
-        }else{
-            setUserManger(false);
-        }
-        }
-    }catch(e){
-
+        try {
+            const userData = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userData);
+    
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                const userAvatar = userData.avatar;
+                const userName = userData.name;
+                const userRole = userData.role;
+                const userEmail = userData.email;
+                console.log("User Email in getUser:", userEmail);
+                setUserName(userName);
+                setUserAvatar(userAvatar);
+                setUserRole(userRole);
+    
+                if (userRole === 'manager') {
+                    setUserManger(true);
+                } else {
+                    setUserManger(false);
+                }
+    
+                if (userEmail) {
+                    fetchTasks(userEmail);
+                }
+            }
+        } catch (e) {
+            console.log(e);
         }
     };
-
-    useEffect(() => {
-
-    const fetchTasks = async () => {
+    
+    const fetchTasks = async (email) => { // Receive email parameter
+        console.log("User Email in fetchTasks:", email);
         try {
             const q = query(
                 collection(db, 'tasks'),
-                where('assignedUser', '==', userEmail) // Filter by the assigned user's email
+                where('assignedUser', '==', email) // Use the passed email
             );
             const snapshot = await getDocs(q);
     
-            const fetchedTasks = snapshot.docs.map(doc => ({
+            const fetchedTasks = snapshot.docs.map((doc) => ({
                 id: doc.id,
                 taskName: doc.data().taskName,
                 assignedUser: doc.data().assignedUser,
                 date: doc.data().date,
-                description: doc.data().description
+                description: doc.data().description,
+                team: doc.data().team,
             }));
     
             setTasks(fetchedTasks);
@@ -110,10 +112,6 @@ export default function Dashboard({user}){
             console.error("Error fetching tasks:", error);
         }
     };
-    
-    fetchTasks();
-
-    }, [user]);
 
     const calculateTimePassed = (timestamp) => {
         const currentTime = new Date();
@@ -248,21 +246,20 @@ export default function Dashboard({user}){
                                 ))}
                             </div>
                             <div className='p-5 bg-slate-50 h-1/2 rounded-xl'>
+                            <h3 className="font-semibold">Tasks</h3>
                             {tasks.length > 0 ? (
-                            <ul>
+                                <ul className="divide-y divide-gray-300">
                                 {tasks.map((task) => (
-                                <li key={task.id}>
-                                    <div>
-                                    <h3>{task.taskName}</h3>
-                                    <p>Assigned to: {task.assignedUser}</p>
-                                    <p>Date: {task.date}</p>
-                                    <p>Description: {task.description}</p>
+                                    <li key={task.id} className="py-4">
+                                    <div className="bg-white rounded-lg shadow-md p-4">
+                                        <h1 className="text-xl font-semibold">{task.taskName}</h1>
+                                        <p className="text-gray-600">{task.team}</p>
                                     </div>
-                                </li>
+                                    </li>
                                 ))}
-                            </ul>
+                                </ul>
                             ) : (
-                            <p>No tasks assigned to you.</p>
+                                <p className="text-gray-600">No tasks assigned to you.</p>
                             )}
                             </div>
                         </div>
