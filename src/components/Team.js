@@ -9,9 +9,11 @@ import { auth } from '../../src/components/firebase';
 import { pushNotifications } from './notifications';
 import FileList from './FileList';
 import Files from './Files';
+import { Toaster, toast } from 'sonner'
 
 export default function Team() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isInviteModalOpen, setInviteModalOpen] = useState(false);
   const [showTeam, setshowTeam] = useState(true);
   const [team, setTeam] = useState();
   const [selectedId, setSelectedId] = useState();
@@ -196,8 +198,17 @@ export default function Team() {
 
   
 
-  const handleUserChange = (event) => {
-    setSelectedUser(event.target.value);
+  const handleUserChange = (e) => {
+    // Handle the selected user here
+    const selectedUserFromList = e.target.value;
+    const selectedEmail = users.find((user) => user.email === selectedUserFromList.split(' - ')[1]).email;
+    // const selectedEmail = selectedUser.email;
+    
+    // Update the selectedUser state
+    setSelectedUser(selectedEmail);
+
+    // You can also perform additional actions based on the selected user if needed
+    console.log('Selected User:', selectedUser);
   };
 
   const handleAddUser = async () => {
@@ -265,6 +276,7 @@ export default function Team() {
   };
   
   const handleInviteUser = async () => {
+    console.log('inviting...');
     const user = auth.currentUser;
     const currentuserid = user.uid;
 
@@ -290,16 +302,23 @@ export default function Team() {
         user: userID,
     });
 
-    alert(`
-    Sent Invite Successfully!
-    manager: ${userName}
-    team: ${teamDoc}
-    time: ${currentTime}
-    user: ${userID}
-
-    link: https://privo.pages.dev/invite?ref=${inviteDocRef.id}
-    `);
+    toast(
+      <div className="text-lg">
+        <p>Sent Invite Successfully!</p>
+        <a href = {`https://privo.pages.dev/invite?ref=${inviteDocRef.id}`}
+        className="text-blue-500 hover:text-blue-700">
+          https://privo.pages.dev/invite?ref={inviteDocRef.id}</a>
+      </div>
+    );
   }
+
+  const handleOpenInviteModal = async () => {
+    setInviteModalOpen(true);
+  }
+
+  const handleCloseInviteModal = () => {
+    setInviteModalOpen(false);
+  };
   
   const handleRemoveUser = async () => {
     if (!selectedUser) {
@@ -507,7 +526,7 @@ export default function Team() {
                 <div className="h-1/4 flex flex-wrap-row justify-center items-center">
                 {isManager? (
                   <>
-                    <button onClick={handleInviteUser} className="bg-sky-300 text-white py-1 px-1 rounded m-2">Invite User</button>
+                    <button onClick={handleOpenInviteModal} className="bg-sky-300 text-white py-1 px-1 rounded m-2">Invite User</button>
                     <button onClick={manageMem} className={`py-1 px-2 rounded m-2 ${manageMembers ? 'bg-white border border-blue-500 text-blue-500 ' : 'bg-sky-300 text-white '}`}>Manage Members</button>
                     
                     <button
@@ -587,11 +606,81 @@ export default function Team() {
                 
           </div>
           
-
             
           )}
+          {isInviteModalOpen && (
+            <div className="fixed z-10 inset-0 overflow-y-auto">
+              <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+                <div className="fixed inset-0 transition-opacity">
+                  <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
+                </div>
+                <span className="hidden sm:inline-block sm:align-middle sm:h-screen"></span>&#8203;
+                <div
+                  className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="modal-headline"
+                >
+                  {/* Your modal content goes here */}
+                  <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div className="sm:flex sm:items-start">
+                      <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-green-100 sm:mx-0 sm:h-10 sm:w-10">
+                        {/* Icon or content for the modal */}
+                        {/* For example, you can add an SVG or an image */}
+                      </div>
+                      <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                        <h3
+                          className="text-lg leading-6 font-medium text-gray-900"
+                          id="modal-headline"
+                        >
+                          Select User to invite.
+                        </h3>
+                        <div className="mt-2">
+                          <p className="text-sm text-gray-500">
+                            <select
+                              id="userDropdown"
+                              name="user"
+                              onChange={handleUserChange}
+                              className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring focus:border-blue-300 sm:text-sm"
+                            >
+                              <option value="" disabled selected>
+                                Select a user
+                              </option>
+                              {users.map((user) => (
+                                <option key={user.id} value={user.id}>
+                                  {user.username} - {user.email}
+                                </option>
+                              ))}
+                            </select>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button
+                      onClick={handleCloseInviteModal}
+                      type="button"
+                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-sky-300 text-base font-medium text-white hover:bg-sky-400 focus:outline-none focus:ring focus:border-blue-300 sm:ml-3 sm:w-auto sm:text-sm"
+                    >
+                      Close
+                    </button>
+                    <button
+                      onClick={handleInviteUser}
+                      type="button"
+                      className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-slate-600 text-base font-medium text-white hover:bg-sky-400 focus:outline-none focus:ring focus:border-blue-300 sm:ml-3 sm:w-auto sm:text-sm"
+                    >
+                      Invite
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            )}
         </main>
       </div>
+      <Toaster/>
     </div>
   );
 }
