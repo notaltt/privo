@@ -150,7 +150,7 @@ export default function Dashboard(){
                       
             <SideBar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar}/>
             
-            <div className='flex flex-col flex-1 w-full"'>
+            <div className='flex flex-col flex-1 w-1/2'>
            
                 <header className='justify-content z-10 mt-5 bg-white shadow-md dark:bg-gray-950'>
                 
@@ -181,7 +181,7 @@ export default function Dashboard(){
                 <main>
                     <div className='flex flex-row'>
                         <div className='w-3/4 p-5'>
-                            <div className='p-5 h-1/2 rounded-xl '>
+                            <div className='p-5 h-4/6 rounded-xl '>
                                 <h1 className='text-left text-3xl font-bold dark:text-white text-gray-700'>Announcements</h1>
                                 {userManager && (
                                     <div className="mb-4 flex gap-3">
@@ -214,7 +214,7 @@ export default function Dashboard(){
                                     </div>
                                 ))}
                             </div>
-                            <div className='p-5 bg-slate-50 h-1/2 rounded-xl'>
+                            <div className='p-5 bg-slate-50 h-1/3 rounded-xl'>
                                 <h1 className='text-left text-3xl font-bold dark:text-white text-gray-700'>Tasks</h1>
                             </div>
                         </div>
