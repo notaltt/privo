@@ -34,25 +34,49 @@ function Tasks({ user }) {
   const [taskDescription, setTaskDescription] = useState('');
   const [hasFetched, setHasFetched] = useState(false);
   const [tasks, setTasks] = useState([]);
+  const [tasksForSelectedDate, setTasksForSelectedDate] = useState([]); 
 
   const handleUserChange = (event) => {
     setSelectedUserEmail(event.target.value);
   };
 
-  // useEffect(() => {
-  //   db.collection('tasks').onSnapshot(snapshot => {
-  //     const fetchedTasks = snapshot.docs.map(doc => ({
-  //       id: doc.id,
-  //       taskName: doc.data().taskName,
-  //       assignedUser: doc.data().assignedUser,
-  //       date: doc.data().date,
-  //       description: doc.data().description
-  //     }));
-  //     setTasks(fetchedTasks);
-  //   });
-  // }, []);
+  const fetchTasks = async () => {
+    try {
+      const tasksRef = collection(db, 'tasks');
+      const snapshot = await getDocs(tasksRef);
+  
+      const fetchedTasks = snapshot.docs.map(doc => ({
+        id: doc.id,
+        taskName: doc.data().taskName,
+        assignedUser: doc.data().assignedUser,
+        date: doc.data().date,
+        description: doc.data().description 
+      }));
+  
+      setTasks(fetchedTasks); 
+      console.log("Tasks fetched successfully:", fetchedTasks);
+    } catch (error) {
+      console.error("Error fetching tasks:", error);
+    }
+  };
+  
+  useEffect(() => {
+    fetchTasks();
+  }, []);
 
-
+  const filterTasksBySelectedDate = (selectedDate) => {
+    const formattedDate = selectedDate.format('YYYY-MM-DD');
+    const filteredTasks = tasks.filter(task => task.date === formattedDate);
+  
+    setTasksForSelectedDate(filteredTasks);
+  };
+  
+  useEffect(() => {
+    if (selectDate) {
+      filterTasksBySelectedDate(selectDate);
+    }
+  }, [selectDate, tasks]);
+  
 
   useEffect(() => {
     const fetchData = async (user) => {
@@ -281,23 +305,23 @@ function Tasks({ user }) {
       <main>
         {/* <div className="mt-5 flex gap-10 sm:divide-x justify-center sm:w-1/2 mx-auto h-screen items-center sm:flex-row flex-col"> */}
         <div className="mt-5 ml-10 flex sm:flex-row flex-col sm:divide-x w-full justify-center h-screen gap-10">
-        {/* <div className="w-96 h-96">
-          <h1 className="font-semibold">Recently Added Tasks</h1>
-          {tasks.length > 0 ? (
-            <div className="mt-4">
-              {tasks.map((task, index) => (
-                <div key={index} className="border rounded p-2 mb-4">
-                  <h3 className="font-semibold">{task.taskName}</h3>
-                  <p>Assigned to: {task.assignedUser}</p>
-                  <p>Date: {task.date}</p>
-                  <p>Description: {task.description}</p>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p>No tasks added yet.</p>
-          )}
-        </div> */}
+          <div className="w-96 h-96">
+            <h1 className="font-semibold">Recently Added Tasks</h1>
+            {tasks.length > 0 ? (
+              <div className="mt-4">
+                {tasks.map((task, index) => (
+                  <div key={index} className="border rounded p-2 mb-4">
+                    <h3 className="font-semibold">{task.taskName}</h3>
+                    <p>Assigned to: {task.assignedUser}</p>
+                    <p>Date: {task.date}</p>
+                    <p>Description: {task.description}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p>No tasks added yet.</p>
+            )}
+          </div>
           <div className=" w-96 h-96">
             <div className="flex justify-between items-center">
               <h1 className="select-none font-semibold">
@@ -374,10 +398,21 @@ function Tasks({ user }) {
             </div>
           </div>
           <div className="h-96 w-96 sm:px-5">
-            <h1 className=" font-semibold">
-              Tasks for {selectDate.toDate().toDateString()}
-            </h1>
-            <p className="text-gray-400">No Tasks for today.</p>
+          <h1 className="font-semibold">
+            Tasks for {selectDate.toDate().toDateString()}
+          </h1>
+          {tasksForSelectedDate.length > 0 ? (
+            tasksForSelectedDate.map((task, index) => (
+              <div key={index} className="border rounded p-2 mb-4">
+                <h3 className="font-semibold">{task.taskName}</h3>
+                <p>Assigned to: {task.assignedUser}</p>
+                <p>Date: {task.date}</p>
+                <p>Description: {task.description}</p>
+              </div>
+            ))
+          ) : (
+            <p>No tasks for this date.</p>
+          )}
           </div>
         </div>
 
