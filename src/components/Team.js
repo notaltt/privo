@@ -4,7 +4,7 @@ import DarkMode from "./DarkMode";
 import React, { useEffect, useState } from "react";
 import { firestore as db } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, getDocs, where, query, doc, updateDoc, getDoc, addDoc } from "firebase/firestore";
+import { collection, getDocs, where, query, doc, updateDoc, getDoc, addDoc, writeBatch } from "firebase/firestore";
 import { auth } from '../../src/components/firebase';
 import { pushNotifications } from './notifications';
 import FileList from './FileList';
@@ -50,6 +50,18 @@ export default function Team() {
     // Unsubscribe from the listener when the component unmounts
     return () => unsubscribe();
   }, [hasFetched]);
+
+  useEffect(() => {
+    checkUserRole();
+    if(userRole === "manager")
+      checkInvites();
+    else
+      console.log('not checking invites. user is not manager');
+
+    return () => {
+      // Cleanup logic goes here
+    };
+  }, [isManager]);
 
   const getUser = async (user) => {
     try{
@@ -97,7 +109,30 @@ export default function Team() {
     }
   };
   
+  const checkInvites = async () => {
+    try {
+      console.log('Checking for invites...');
+  
+      const thresholdTime = new Date(Date.now() - 60 * 60 * 1000);
+      const inviteRef = collection(db, 'invites');
 
+      const q = query(inviteRef, where("time", "<", thresholdTime));
+      const querySnapshot = await getDocs(q);
+  
+      const batch = writeBatch(db);
+      
+      querySnapshot.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+  
+      // Commit the batch delete
+      await batch.commit();
+  
+      console.log('Invites checked and deleted successfully.');
+    } catch (error) {
+      console.error('Error checking invites:', error);
+    }
+  };
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
