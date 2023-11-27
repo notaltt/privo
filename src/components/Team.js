@@ -246,6 +246,10 @@ export default function Team() {
     console.log('Selected User:', selectedUser);
   };
 
+  const handleUserChanges = (event) => {
+    setSelectedUser(event.target.value);
+  };
+
   const handleAddUser = async () => {
     if (!selectedUser) {
       setErrorModalMessage('Please select a user before adding.');
@@ -593,7 +597,7 @@ export default function Team() {
                 <label for='users' className="p-4 m-4">Choose user:</label>
 
                 <div>
-                  <select name='users' id='users' onChange={handleUserChange} classNam="w-screen">
+                  <select name='users' id='users' onChange={handleUserChanges} classNam="w-screen">
                     <option value=''>Select a user</option>{" "}
                     {users.map((user) => (
                       <option key={user.email} value={user.email}>
