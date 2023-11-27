@@ -10,6 +10,7 @@ import { firestore as db } from './firebase';
 import { collection, addDoc, getDocs, where, query, doc,  getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from '../../src/components/firebase';
+import { Toaster, toast } from 'sonner'
 
 function Tasks({ user }) {
   const days = ["S", "M", "T", "W", "T", "F", "S"];
@@ -221,6 +222,7 @@ function Tasks({ user }) {
     
     try {
       if (!selectedTeam || !taskName || !taskDate || !selectedUserEmail || !taskDescription) {
+        toast.error('Incomplete task details. Please fill in all fields.')
         console.error('Incomplete task details. Please fill in all fields.');
         return;
       }
@@ -234,7 +236,7 @@ function Tasks({ user }) {
         assignedUser: selectedUserEmail,
         description: taskDescription,
       });
-  
+      toast.sucesss('Successfully added task')
       console.log('Task added successfully!');
       closeModal();
     } catch (error) {
@@ -468,7 +470,7 @@ function Tasks({ user }) {
                       Assign a user
                     </label>
                     <div className='mt-2'>
-                    <select name='users' id='users' value={selectedUserEmail} onChange={handleUserChange} className="block w-full px-4 py-2 border rounded-lg mt-1">
+                    <select name='users' id='users' value={selectedUserEmail} onChange={handleUserChange} required className="block w-full px-4 py-2 border rounded-lg mt-1">
                       {users.map((user, index) => (
                         <option key={index} value={user.email}>
                           {user.name} ({user.email})
