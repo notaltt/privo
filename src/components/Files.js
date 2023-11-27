@@ -85,6 +85,7 @@ export default function Files(){
     };
 
     const handleAddToTeam = async () => {
+        
         const currentLoggedEmail = auth.currentUser.email;
         console.log(currentLoggedEmail);
         console.log("adding to team...");
@@ -93,9 +94,11 @@ export default function Files(){
         const docSnap = await getDoc(teamRef);
 
         if (docSnap.exists()) {
-            // const currentMembers = docSnap.data().members || [];
-            // console.log("currentMembers: ", currentMembers);
-            // currentMembers.push(currentLoggedEmail);
+            // TODO: implement this code block
+
+            const currentMembers = docSnap.data().members || [];
+            console.log("currentMembers: ", currentMembers);
+            currentMembers.push(currentLoggedEmail);
             // await updateDoc(teamDoc, {
             //     members: currentMembers,
             //   });
