@@ -8,7 +8,7 @@ import { useState, useEffect } from 'react';
 import { firestore as db } from './firebase'; 
 import { auth } from '../../src/components/firebase';
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, getDocs, where, query, doc,  getDoc } from "firebase/firestore";
+import { collection, getDocs, where, query, doc, getDoc, updateDoc } from "firebase/firestore";
 import myImage from '../images/logoOpacity.png';
 
 
@@ -25,6 +25,7 @@ export default function Files(){
     const [teamCode, setTeamCode] = useState('');
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [inviteDoc, setInviteDoc] = useState();
+    const [teamDoc, setTeamDoc] = useState();
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -68,6 +69,7 @@ export default function Files(){
                 console.log("Document data:", docSnap.data().user);
                 if(docSnap.data().user === currentLoggedUser.uid){
                     setInviteDoc(docSnap.data());
+                    setTeamDoc(docSnap.data().team);
                     openInviteModal();
                 }
                 else{
@@ -82,6 +84,32 @@ export default function Files(){
         }
     };
 
+    const handleAddToTeam = async () => {
+        const currentLoggedEmail = auth.currentUser.email;
+        console.log(currentLoggedEmail);
+        console.log("adding to team...");
+        
+        const teamRef = doc(db, 'team', teamDoc);
+        const docSnap = await getDoc(teamRef);
+
+        if (docSnap.exists()) {
+            // const currentMembers = docSnap.data().members || [];
+            // console.log("currentMembers: ", currentMembers);
+            // currentMembers.push(currentLoggedEmail);
+            // await updateDoc(teamDoc, {
+            //     members: currentMembers,
+            //   });
+            // currentTeams.push(selectedId);
+            // const userDoc = doc(userCollection, userSnapshot.docs[0].id);
+            // await updateDoc(userDoc, { teams: currentTeams });
+
+        } else {
+            alert('Error reading document.');
+        }
+
+        closeInviteModal();
+    }
+
     const openInviteModal = () => {
         setIsInviteModalOpen(true);
     };
@@ -89,12 +117,6 @@ export default function Files(){
     const closeInviteModal = () => {
         setIsInviteModalOpen(false);
     };
-
-    const handleAddToTeam = () => {
-        console.log("adding to team...");
-        
-        closeInviteModal();
-    }
 
     const getUserCompany = async (user) => {
         try {
