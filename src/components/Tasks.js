@@ -158,38 +158,67 @@ function Tasks({ user }) {
     }
   };
   
+  // const fetchTeam = async (user) => {
+  //   try {
+  //     const userRef = doc(db, 'users', user.uid);
+  //     const userSnapshot = await getDoc(userRef);
+  
+  //     if (userSnapshot.exists()) {
+  //       const userData = userSnapshot.data();
+  //       const userCompany = userData.company;
+  
+  //       const teamRef = collection(db, "team");
+  //       const queryCompany = query(teamRef, where('fromCompany', '==', userCompany));
+  //       const companySnapshot = await getDocs(queryCompany);
+  
+  //       const teams = companySnapshot.docs.map((companyDoc) => {
+  //         const companyData = companyDoc.data();
+  //         const members = companyData.members || [];
+  //         const totalMembers = members.length;
+  
+  //         return { id: companyDoc.id, ...companyData, totalMembers };
+  //       });
+  
+  //       const defaultOption = { id: '', teamName: 'Please select team' }; // Creating a default option
+  //       const teamsWithDefault = [defaultOption, ...teams]; // Adding the default option to the teams array
+  //       setJoinedTeams(teamsWithDefault); // Update the state variable with the default option
+  //       console.log("AVAILABLE", teamsWithDefault);
+  //     } else {
+  //       console.log("User snapshot does not exist.");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching team:", error);
+  //   }
+  // };
+
   const fetchTeam = async (user) => {
+    const teams = [];
     try {
-      const userRef = doc(db, 'users', user.uid);
-      const userSnapshot = await getDoc(userRef);
-  
-      if (userSnapshot.exists()) {
+    const userRef = doc(db, 'users', user.uid);
+    const userSnapshot = await getDoc(userRef);
+
+    if (userSnapshot.exists()) {
         const userData = userSnapshot.data();
-        const userCompany = userData.company;
-  
-        const teamRef = collection(db, "team");
-        const queryCompany = query(teamRef, where('fromCompany', '==', userCompany));
-        const companySnapshot = await getDocs(queryCompany);
-  
-        const teams = companySnapshot.docs.map((companyDoc) => {
-          const companyData = companyDoc.data();
-          const members = companyData.members || [];
-          const totalMembers = members.length;
-  
-          return { id: companyDoc.id, ...companyData, totalMembers };
+        const userTeams = userData.teams || [];
+
+        const teamRef = collection(db, 'team');
+        const teamQuery = query(teamRef, where('teamName', 'array-contains-any', userTeams));
+        const teamSnapshot = await getDocs(teamQuery);
+
+        teamSnapshot.forEach((doc) => {
+        const teamData = doc.data();
+        const members = teamData.members || [];
+        const totalMembers = members.length;
+
+        teams.push({ id: doc.id, ...teamData, totalMembers });
         });
-  
-        const defaultOption = { id: '', teamName: 'Please select team' }; // Creating a default option
-        const teamsWithDefault = [defaultOption, ...teams]; // Adding the default option to the teams array
-        setJoinedTeams(teamsWithDefault); // Update the state variable with the default option
-        console.log("AVAILABLE", teamsWithDefault);
-      } else {
-        console.log("User snapshot does not exist.");
-      }
-    } catch (error) {
-      console.error("Error fetching team:", error);
     }
-  };
+    } catch (error) {
+    console.error("Error fetching team:", error);
+    }
+    setJoinedTeams(teams);
+};
+
   
  
   const fetchUsers = async (user, selectedTeam) => {
@@ -267,7 +296,8 @@ function Tasks({ user }) {
 
 
   return(
-  <div className="flex dark:bg-gray-950 bg-white">           
+  <div className="flex dark:bg-gray-950 bg-white">   
+    <Toaster richColors expand={false} position="bottom-center"/>        
     <SideBar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar}/>
     <div className='flex flex-col flex-1 w-full"'> 
       <header className='justify-content z-10 mt-5 bg-white shadow-md dark:bg-gray-950'>
@@ -521,5 +551,3 @@ function Tasks({ user }) {
 }
 
 export default Tasks;
-
-
