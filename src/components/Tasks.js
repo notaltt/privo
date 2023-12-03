@@ -11,6 +11,7 @@ import { collection, addDoc, getDocs, where, query, doc,  getDoc, Timestamp, del
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from '../../src/components/firebase';
 import { Toaster, toast } from 'sonner'
+import myImage from '../images/logoOpacity.png';
 
 function Tasks({ user }) {
   const days = ["S", "M", "T", "W", "T", "F", "S"];
@@ -309,7 +310,7 @@ function Tasks({ user }) {
 
 
   return(
-  <div className="flex dark:bg-gray-950 bg-white">   
+    <div className="flex bg-no-repeat bg-right-bottom dark:bg-gray-950 h-screen overflow-hidden': isSideMenuOpen }" style={{ backgroundImage: `url(${myImage})` }}>   
     <Toaster richColors expand={false} position="bottom-center"/>        
     <SideBar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar}/>
     <div className='flex flex-col flex-1 w-full"'> 
