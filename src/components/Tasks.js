@@ -158,39 +158,6 @@ function Tasks({ user }) {
     }
   };
   
-  // const fetchTeam = async (user) => {
-  //   try {
-  //     const userRef = doc(db, 'users', user.uid);
-  //     const userSnapshot = await getDoc(userRef);
-  
-  //     if (userSnapshot.exists()) {
-  //       const userData = userSnapshot.data();
-  //       const userCompany = userData.company;
-  
-  //       const teamRef = collection(db, "team");
-  //       const queryCompany = query(teamRef, where('fromCompany', '==', userCompany));
-  //       const companySnapshot = await getDocs(queryCompany);
-  
-  //       const teams = companySnapshot.docs.map((companyDoc) => {
-  //         const companyData = companyDoc.data();
-  //         const members = companyData.members || [];
-  //         const totalMembers = members.length;
-  
-  //         return { id: companyDoc.id, ...companyData, totalMembers };
-  //       });
-  
-  //       const defaultOption = { id: '', teamName: 'Please select team' }; // Creating a default option
-  //       const teamsWithDefault = [defaultOption, ...teams]; // Adding the default option to the teams array
-  //       setJoinedTeams(teamsWithDefault); // Update the state variable with the default option
-  //       console.log("AVAILABLE", teamsWithDefault);
-  //     } else {
-  //       console.log("User snapshot does not exist.");
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching team:", error);
-  //   }
-  // };
-
   const fetchTeam = async (user) => {
     const teams = [];
     try {
@@ -251,8 +218,7 @@ function Tasks({ user }) {
     
     try {
       if (!selectedTeam || !taskName || !taskDate || !selectedUserEmail || !taskDescription) {
-        toast.error('Incomplete task details. Please fill in all fields.')
-        console.error('Incomplete task details. Please fill in all fields.');
+        toast.error('Incomplete task details. Please fill in all fields.');
         return;
       }
   
@@ -265,11 +231,13 @@ function Tasks({ user }) {
         assignedUser: selectedUserEmail,
         description: taskDescription,
       });
-      toast.sucesss('Successfully added task')
-      console.log('Task added successfully!');
-      closeModal();
+      
+      // Use the correct function for success toast
+      toast.success('Successfully added task');
+      closeModal(); // Make sure this function is called after successful addition
     } catch (error) {
       console.error('Error adding task:', error);
+      toast.error('Error adding task.'); // Display an error toast
     }
   };
   
@@ -304,30 +272,28 @@ function Tasks({ user }) {
         <div className="flex md:justify-center flex-1 lg:mr-32">
               <div className=" relative w-40 justify-center md:w-full max-w-xl mr-6 focus-within:text-purple-500">
               <div>
-              <select
-                className="w-full pl-8 pr-2 text-large dark:text-black ..."
-                aria-label="Choose Team"
-                value={selectedTeam}
-                onChange={(e) => {
-                  const selectedId = e.target.value;
-                  const team = joinedTeams.find((team) => team.id === selectedId);
-                  setSelectedTeam(team ? team.id : ''); // Set the selected team ID
-                  fetchUsers(currentUser, team ? team.id : ''); // Fetch users for the selected team
-                }}
-                id="team-select"
-              >
-              {joinedTeams && joinedTeams.length > 0 ? (
-                joinedTeams.map((team) => (
-                  <option key={team.id} value={team.id}>
-                    {team.teamName}
-                  </option>
-                ))
-              ) : (
-                <div>
-                  No teams available or you're not part of any teams.
-                </div>
-              )}
-              </select>
+                <select
+                  className="w-full pl-8 pr-2 text-large dark:text-black ..."
+                  aria-label="Choose Team"
+                  value={selectedTeam}
+                  onChange={(e) => {
+                    const selectedId = e.target.value;
+                    const team = joinedTeams.find((team) => team.id === selectedId);
+                    setSelectedTeam(team ? team.id : ''); // Set the selected team ID
+                    fetchUsers(currentUser, team ? team.id : ''); // Fetch users for the selected team
+                  }}
+                  id="team-select"
+                >
+                  {joinedTeams && joinedTeams.length > 0 ? (
+                    joinedTeams.map((team) => (
+                      <option key={team.id} value={team.id}>
+                        {team.teamName} {/* Display team name as an option */}
+                      </option>
+                    ))
+                  ) : (
+                    <option disabled>No teams available or you're not part of any teams.</option>
+                  )}
+                </select>
             </div>
             </div> 
             <div>
@@ -347,9 +313,7 @@ function Tasks({ user }) {
           </div> 
       </header>
       <main>
-        {/* <div className="mt-5 flex gap-10 sm:divide-x justify-center sm:w-1/2 mx-auto h-screen items-center sm:flex-row flex-col"> */}
-        <div className="mt-5 ml-10 flex sm:flex-row flex-col sm:divide-x w-full justify-center h-screen gap-10">
-          <div className="w-96 h-96">
+          {/* <div className="w-96 h-96">
             <h1 className="font-semibold">Recently Added Tasks</h1>
             {tasks.length > 0 ? (
               <div className="mt-4">
@@ -364,8 +328,9 @@ function Tasks({ user }) {
             ) : (
               <p>No tasks added yet.</p>
             )}
-          </div>
-          <div className=" w-96 h-96">
+          </div> */}
+        <div className="mt-10 flex sm:flex-row flex-col sm:divide-x-2 w-full justify-center h-screen gap-10">
+          <div className=" w-96 h-96 px-5">
             <div className="flex justify-between items-center">
               <h1 className="select-none font-semibold">
                 {months[today.month()]}, {today.year()}
@@ -418,7 +383,7 @@ function Tasks({ user }) {
                     <h1
                       className={cn(
                         currentMonth ? "" : "text-gray-400",
-                        today ? "bg-red-600 text-white" : "",
+                        today ? "bg-blue-600 text-white" : "",
                         selectDate.toDate().toDateString() === date.toDate().toDateString()
                           ? "bg-black text-white"
                           : "",
@@ -442,9 +407,24 @@ function Tasks({ user }) {
           </h1>
           {tasksForSelectedDate.length > 0 ? (
             tasksForSelectedDate.map((task, index) => (
-              <div key={index} className="border rounded p-2 mb-4">
-                <h3 className="font-semibold">{task.taskName}</h3>
-                <p>Description: {task.description}</p>
+              <div key={index} class="w-full max-w-md px-8 py-4 mt-16 bg-white rounded-lg shadow-lg dark:bg-gray-800">
+                  <div class="flex justify-center -mt-16 md:justify-end">
+                      <img
+                          class="object-cover w-20 h-20 border-2 border-blue-500 rounded-full dark:border-blue-400"
+                          alt="Testimonial avatar"
+                          src="https://images.unsplash.com/photo-1499714608240-22fc6ad53fb2?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=76&q=80"
+                      />
+                  </div>
+
+                  <h2 class="mt-2 text-xl font-semibold text-gray-800 dark:text-white md:mt-0">{task.taskName}</h2>
+
+                  <p class="mt-2 text-sm text-gray-600 dark:text-gray-200">
+                      {task.description}
+                  </p>
+
+                  <div class="flex justify-end mt-4">
+                      <a class="text-lg font-medium text-blue-600 dark:text-blue-300" tabindex="0">{task.assignedUser}</a>
+                  </div>
               </div>
             ))
           ) : (
