@@ -7,7 +7,7 @@ import dayjs from "dayjs";
 import cn from '../components-additional/cn'
 import { GrFormNext, GrFormPrevious } from "react-icons/gr";
 import { firestore as db } from './firebase'; 
-import { collection, addDoc, getDocs, where, query, doc,  getDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, where, query, doc,  getDoc, Timestamp, deleteDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from '../../src/components/firebase';
 import { Toaster, toast } from 'sonner'
@@ -19,6 +19,7 @@ function Tasks({ user }) {
 	const [today, setToday] = useState(currentDate);
 	const [selectDate, setSelectDate] = useState(currentDate);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalTaskOpen, setIsModalTaskOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState();
   const [userCompany, setUserCompany] = useState();
   const [isLoading, setIsLoading] = useState(true);
@@ -29,13 +30,15 @@ function Tasks({ user }) {
   const [userAvatar, setUserAvatar] = useState('');
   const [userRole, setUserRole] = useState('');
   const [users, setUsers] = useState([]);
+  const [showConfirmation, setShowConfirmation] = useState(false);
   const [selectedUserEmail, setSelectedUserEmail] = useState('');
   const [taskName, setTaskName] = useState('');
   const [taskDate, setTaskDate] = useState('');
   const [taskDescription, setTaskDescription] = useState('');
   const [hasFetched, setHasFetched] = useState(false);
   const [tasks, setTasks] = useState([]);
-  const [tasksForSelectedDate, setTasksForSelectedDate] = useState([]); 
+  const [tasksForSelectedDate, setTasksForSelectedDate] = useState([]);
+  const [selectedTask, setSelectedTask] = useState(null);
 
   const handleUserChange = (event) => {
     setSelectedUserEmail(event.target.value);
@@ -230,6 +233,7 @@ function Tasks({ user }) {
         date: taskDate,
         assignedUser: selectedUserEmail,
         description: taskDescription,
+        createdAt: Timestamp.now(),
       });
       
       // Use the correct function for success toast
@@ -240,6 +244,19 @@ function Tasks({ user }) {
       toast.error('Error adding task.'); // Display an error toast
     }
   };
+
+  const deleteTaskFromFirestore = async (taskId) => {
+    try {
+      const taskRef = doc(db, "tasks", taskId);
+      await deleteDoc(taskRef);
+      toast.success('Successfully removed task');
+    } catch (error) {
+      console.error("Error deleting task from Firestore:", error);
+      toast.success("Error removing task");
+      // Handle the error
+    }
+  };
+  
   
 
   
@@ -253,6 +270,34 @@ function Tasks({ user }) {
 
   const closeModal = () => {
     setIsModalOpen(false);
+  };
+
+  const openTaskModal = (task) => {
+    setSelectedTask(task);    // Set the selected task for use in the modal
+    setIsModalTaskOpen(true); // Open the task details modal
+  };
+
+  const closeTaskModal = () => {
+    setIsModalTaskOpen(false);
+    setShowConfirmation(false); // Close the confirmation dialog
+  };
+
+  const handleDeleteTask = () => {
+    setShowConfirmation(true);
+  };
+
+  const confirmDeleteTask = () => {
+    if (selectedTask) {
+      deleteTaskFromFirestore(selectedTask.id);
+      closeTaskModal();
+    }
+  };
+
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      // Clicked on the backdrop (outside the modal)
+      closeTaskModal();
+    }
   };
 
   console.log(generateDate());
@@ -329,8 +374,8 @@ function Tasks({ user }) {
               <p>No tasks added yet.</p>
             )}
           </div> */}
-        <div className="mt-10 flex sm:flex-row flex-col sm:divide-x-2 w-full justify-center h-screen gap-10">
-          <div className=" w-96 h-96 px-5">
+        <div className="mt-10 flex flex-nowrap sm:divide-x-2 w-full justify-center h-screen ">
+          <div className="flex-none w-1/3 px-5 overflow-hidden">
             <div className="flex justify-between items-center">
               <h1 className="select-none font-semibold">
                 {months[today.month()]}, {today.year()}
@@ -382,13 +427,14 @@ function Tasks({ user }) {
                   >
                     <h1
                       className={cn(
+                        "h-10 w-10 rounded-full grid place-content-center hover:bg-black hover:text-white transition-all cursor-pointer select-none",
                         currentMonth ? "" : "text-gray-400",
-                        today ? "bg-blue-600 text-white" : "",
                         selectDate.toDate().toDateString() === date.toDate().toDateString()
-                          ? "bg-black text-white"
-                          : "",
-                        dateHasTasks ? "bg-gray-300" : "",
-                        "h-10 w-10 rounded-full grid place-content-center hover:bg-black hover:text-white transition-all cursor-pointer select-none"
+                          ? "bg-black text-white" // Selected date
+                          : dateHasTasks ? "bg-gray-300" : "", // Other dates with tasks
+                        today && selectDate.toDate().toDateString() !== date.toDate().toDateString()
+                          ? "bg-blue-600 text-white" // Today's date, not selected
+                          : ""
                       )}
                       onClick={() => {
                         setSelectDate(date);
@@ -401,37 +447,91 @@ function Tasks({ user }) {
               })}
             </div>
           </div>
-          <div className="h-96 w-96 sm:px-5">
-          <h1 className="font-semibold">
-            Tasks for {selectDate.toDate().toDateString()}
-          </h1>
-          {tasksForSelectedDate.length > 0 ? (
-            tasksForSelectedDate.map((task, index) => (
-              <div key={index} class="w-full max-w-md px-8 py-4 mt-16 bg-white rounded-lg shadow-lg dark:bg-gray-800">
-                  <div class="flex justify-center -mt-16 md:justify-end">
+          <div className="flex-none w-2/3 px-5 overflow-hidden">
+            <h1 className="font-semibold">Tasks for {selectDate.toDate().toDateString()}</h1>
+            <div className="flex flex-wrap justify-center gap-4 mt-5">
+              {tasksForSelectedDate.length > 0 ? (
+                tasksForSelectedDate.map((task, index) => (
+                <div key={index} className="w-full sm:w-1/2 lg:w-1/3 p-4">
+                  <div className="bg-white rounded-lg shadow-lg dark:bg-gray-800 overflow-hidden" onClick={() => openTaskModal(task)}>
+                    <div className="flex justify-center">
                       <img
-                          class="object-cover w-20 h-20 border-2 border-blue-500 rounded-full dark:border-blue-400"
-                          alt="Testimonial avatar"
-                          src="https://images.unsplash.com/photo-1499714608240-22fc6ad53fb2?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=76&q=80"
+                        className="object-cover w-20 h-20 border-2 border-blue-500 rounded-full dark:border-blue-400"
+                        alt="User avatar"
+                        src="https://images.unsplash.com/photo-1499714608240-22fc6ad53fb2?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=76&q=80"
                       />
+                    </div>
+
+                    <div className="p-4">
+                      <h2 className="text-xl font-semibold text-gray-800 dark:text-white truncate">
+                        {task.taskName}
+                      </h2>
+
+                      <p className="text-sm text-gray-600 dark:text-gray-200 truncate">
+                        {task.description}
+                      </p>
+                    </div>
+
+                    <div className="p-4">
+                      <a className="text-lg font-medium text-blue-600 dark:text-blue-300" tabIndex="0">
+                        {task.assignedUser}
+                      </a>
+                    </div>
                   </div>
-
-                  <h2 class="mt-2 text-xl font-semibold text-gray-800 dark:text-white md:mt-0">{task.taskName}</h2>
-
-                  <p class="mt-2 text-sm text-gray-600 dark:text-gray-200">
-                      {task.description}
-                  </p>
-
-                  <div class="flex justify-end mt-4">
-                      <a class="text-lg font-medium text-blue-600 dark:text-blue-300" tabindex="0">{task.assignedUser}</a>
-                  </div>
-              </div>
-            ))
-          ) : (
-            <p>No tasks for this date.</p>
-          )}
+                </div>
+                ))
+              ) : (
+                <p>No tasks for this date.</p>
+              )}
+            </div>
           </div>
         </div>
+
+        {isModalTaskOpen && selectedTask && (
+          <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex justify-center items-center z-50"  onClick={handleBackdropClick} >
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden max-w-lg w-full mx-4">
+              <div className="p-6">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Task Name: {selectedTask.taskName}</h3>
+                <h1 className="text-gray-700 dark:text-gray-300">Date added: </h1>
+                <h1 className="text-gray-700 dark:text-gray-300">Deadline: {selectedTask.date} </h1>
+                <h1 className="text-gray-700 dark:text-gray-300">Assigned to: {selectedTask.assignedUser} </h1>
+                
+                <div className="border border-gray-300 dark:border-gray-700 p-3 rounded-md">
+                  <p className="text-gray-700 dark:text-gray-300">{selectedTask.description}</p>
+                </div>
+                
+                <div className="mt-4">
+                  <button
+                    className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+                    onClick={handleDeleteTask}
+                  >
+                    Delete Task
+                  </button>
+                </div>
+                {showConfirmation && (
+                <div className="mt-4">
+                  <p>Are you sure you want to delete this task?</p>
+                  <button
+                    className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+                    onClick={confirmDeleteTask}
+                  >
+                    Confirm Delete
+                  </button>
+                  <button
+                    className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded ml-2"
+                    onClick={closeTaskModal}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        
+
 
         {isModalOpen && (
           <div id="modal" className="fixed top-0 left-0 w-full h-full bg-opacity-80 bg-gray-900 flex justify-center items-center">
