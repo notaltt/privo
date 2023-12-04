@@ -1,5 +1,5 @@
 import { firestore as db } from './firebase';
-import { arrayUnion, doc, updateDoc, setDoc } from 'firebase/firestore';
+import { arrayUnion, doc, updateDoc } from 'firebase/firestore';
 
 export async function pushNotifications(team, avatar, name, role, time, type, content) {
   const teamString = team.toString();

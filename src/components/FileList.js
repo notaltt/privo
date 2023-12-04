@@ -17,6 +17,7 @@ import { ReactComponent as TextDocIcon } from '../images/textdoc.svg';
 import { ReactComponent as AudioIcon } from '../images/audio.svg'
 import { ReactComponent as UknownIcon } from '../images/unknown.svg';
 import { ReactComponent as ArrowIcon } from '../images/arrow.svg';
+import { deleteFromFirestore } from './fileData';
 import FileUpload from './FileUpload';
 import { Toaster, toast } from 'sonner'
 
@@ -251,6 +252,8 @@ const FileList = ({ company, team }) => {
         const successDownloads = results
           .filter((result) => result.status === 'fulfilled')
           .map((result) => result.value.name);
+
+          setSelected([]);
   
         return `${successDownloads.length} files downloaded successfully`;
       },
@@ -261,19 +264,14 @@ const FileList = ({ company, team }) => {
   
 
   function fileTypeRename(typeName){
-    if("application/vnd.openxmlformats-officedocument.wordprocessingml.document" === typeName){
-      return "application/docx";
+    switch(typeName){
+      case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+        return 'application/docx';
+      case 'application/vnd.oasis.opendocument.text':
+        return 'application/odt';
+      default:
+        return typeName;
     }
-
-    if("application/vnd.oasis.opendocument.text" === typeName){
-      return "application/odt";
-    }
-
-    if("" === typeName){
-      return "type/folder"
-    }
-
-    return typeName;
   }
 
   function handleFileClick(file){
@@ -395,6 +393,8 @@ const FileList = ({ company, team }) => {
               notificationData.type,
               notificationData.content
             );
+            deleteFromFirestore(fileName, path + `/${fileName}`, userTeam);
+            setSelected([]);
             toast.success(`File ${fileName} deleted successfully.`);
           })
           .catch((error) => {
