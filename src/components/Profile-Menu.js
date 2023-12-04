@@ -15,29 +15,31 @@ const ProfileMenu = () => {
     const auth = UserAuth();
     const [userData, setUserData] = useState(null);
 
-    const fetchUserData = async () => {
-      if (auth && auth.user && auth.user.uid) {
-        const firestore = getFirestore();
-        const userRef = doc(firestore, 'users', auth.user.uid);
-    
-        try {
-          const userDoc = await getDoc(userRef);
-          if (userDoc.exists()) {
-            setUserData(userDoc.data());
-          } else {
-            console.log('User document does not exist');
-          }
-        } catch (error) {
-          console.error('Error fetching user data:', error);
-        }
-      }
-    }; fetchUserData();
    
         useEffect(() => {
             if (currentUser?.photoURL) {
               setPhotoURL(currentUser.photoURL);
             }
-          }, [currentUser])
+
+            const fetchUserData = async () => {
+              if (auth && auth.user && auth.user.uid) {
+                const firestore = getFirestore();
+                const userRef = doc(firestore, 'users', auth.user.uid);
+            
+                try {
+                  const userDoc = await getDoc(userRef);
+                  if (userDoc.exists()) {
+                    setUserData(userDoc.data());
+                  } else {
+                    console.log('User document does not exist');
+                  }
+                } catch (error) {
+                  console.error('Error fetching user data:', error);
+                }
+              }
+            };
+
+          },[currentUser])
   
           const handleLogout = async () => {
             try {
