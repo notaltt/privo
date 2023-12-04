@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import {ReactComponent as CloudIcon} from '../images/cloudicon.svg';
 import storage from './firebase';
 import { pushNotifications } from './notifications';
+import { addToFirestore } from "./fileData";
 import { ref, uploadBytesResumable, getDownloadURL} from "firebase/storage"
 import { doc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
@@ -132,15 +133,19 @@ export default function FileUpload({isVisible, company, team, path, uploadSucces
           setUploadedFileNames(fileNames);
           setFile([]);
           const notificationContent = "Added " + fileNames.join(", ");
+
           const notificationData = {
             time: new Date(),
             type: "Uploaded files",
             content: notificationContent,
           };
-          pushNotifications(userTeam, userAvatar, userName, userRole, notificationData.time, notificationData.type, notificationData.content);
+          pushNotifications(team, userAvatar, userName, userRole, notificationData.time, notificationData.type, notificationData.content);
+          
+          fileNames.forEach(async(fileName) => {
+            await addToFirestore(fileName, path + `/${fileName}`, team);
+          });
 
           toast.success('Files are uploaded.')
-          
         })
         .catch((error) => {
           console.error("Error while uploading files: " + error);

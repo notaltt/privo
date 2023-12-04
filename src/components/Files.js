@@ -3,13 +3,19 @@ import FileUpload from './FileUpload';
 import Profile from './Profile-Menu';
 import DarkMode from './DarkMode';
 import FileList from './FileList';
-import {ReactComponent as CloudIcon} from '../images/cloudicon.svg';
-import { useState, useEffect } from 'react';
+import {ReactComponent as Magnify} from '../images/magnify.svg';
+import { useState, useEffect, useRef } from 'react';
 import { firestore as db } from './firebase'; 
 import { auth } from '../../src/components/firebase';
 import { onAuthStateChanged } from "firebase/auth";
 import { collection, getDocs, where, query, doc, getDoc, updateDoc } from "firebase/firestore";
 import myImage from '../images/logoOpacity.png';
+import { ref, getDownloadURL, getMetadata, uploadString, deleteObject} from "firebase/storage";
+import { Toaster, toast } from 'sonner'
+import storage from './firebase';
+import { pushNotifications } from './notifications';
+import { deleteFromFirestore } from './fileData';
+
 
 
 export default function Files(){
@@ -26,6 +32,17 @@ export default function Files(){
     const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
     const [inviteDoc, setInviteDoc] = useState();
     const [teamDoc, setTeamDoc] = useState();
+    const [searchDropdown, setSearchDropdown] = useState(false);
+    const [fileData, setFileData] = useState([]);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [deleteMenu, setDeleteMenu] = useState(false);
+    const [selected, setSelected] = useState('');
+    const [userAvatar, setUserAvatar] = useState(null);
+    const [userName, setUserName] = useState(null);
+    const [userRole, setUserRole] = useState(null);
+    const searchComponent = useRef(null);
+    const dropdownComponent = useRef(null);
+
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -40,11 +57,21 @@ export default function Files(){
         });
     
         return () => unsubscribe();
-      }, [userCompany]);
+    }, [userCompany]);
+
+    const handleSearchInput = (e) => {
+        setSearchQuery(e.target.value);
+    }
+
 
     const toggleSidebar = () => {
       setIsSidebarOpen(!isSidebarOpen);
     }
+
+    const toggleDropdown = () => {
+        setSearchDropdown(!searchDropdown);
+        fetchFiles();
+    };
 
     const handleTeamClick = (selectedTeamName) => {
         setTeamName(selectedTeamName);
@@ -129,6 +156,13 @@ export default function Files(){
             if (userUid.exists) {
                 const userData = userUid.data();
                 const userCompany = userData.company;
+                const userAvatar = userData.avatar;
+                const userName = userData.name;
+                const userRole = userData.role;
+        
+                setUserName(userName);
+                setUserAvatar(userAvatar);
+                setUserRole(userRole);
                 setUserCompany(userCompany);
             } else {
                 console.log('User document not found');
@@ -169,14 +203,152 @@ export default function Files(){
         setLoadingTeams(false);
     };
 
+    const fetchFiles = async () => {
+        const teamFiles = [];
+      
+        try {
+          for (const team of joinedTeams) {
+            const fileRef = doc(db, 'files', team.id);
+            const fileSnapshot = await getDoc(fileRef);
+      
+            if (fileSnapshot.exists()) {
+              const data = fileSnapshot.data();
+              if (data.fileData && Array.isArray(data.fileData)) {
+                teamFiles.push(...data.fileData);
+              }
+            }
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      
+        setFileData(teamFiles);
+    };
+
     const member = (length) => {
         return length === 1 ? " member" : " members";
     };
+
+    const renamePath = (path) => {
+        const segments = path.split('/');
+        if (segments.length >= 3) {
+            return `${segments.slice(2).join(' > ')}`;
+        } else {
+            return path;
+        }
+    };
+
+    const filteredData = fileData.filter((file) => 
+        file.fileName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    function deleteFile(fileName) {
+        const storageRef = ref(storage, selected.path);
+        const notificationData = {
+            time: new Date(),
+            type: "file",
+            content: "deleted " + fileName,
+        };
+
+        return deleteObject(storageRef)
+            .then(() => {
+            pushNotifications(
+                selected.team,
+                userAvatar,
+                userName,
+                userRole,
+                notificationData.time,
+                notificationData.type,
+                notificationData.content
+            );
+            deleteFromFirestore(fileName, selected.path, selected.team);
+            setDeleteMenu(false);
+            fetchFiles();
+            toast.success(`File ${fileName} deleted successfully.`);
+            })
+            .catch((error) => {
+            console.error(`Error deleting file ${fileName}: ${error.message}`);
+        });
+  
+    }
+
+    function closeDelete(){
+        setDeleteMenu(false);
+    }
+
+    function downloadFile(fileName) {
+        return new Promise((resolve, reject) => {
+            const storageRef = ref(storage, selected.path);
+    
+            getDownloadURL(storageRef)
+                .then((url) => {
+                    const xhr = new XMLHttpRequest();
+                    xhr.responseType = 'blob';
+    
+                    xhr.onload = () => {
+                        if (xhr.status === 200) {
+                            const blob = xhr.response;
+                            const objectURL = URL.createObjectURL(blob);
+    
+                            const a = document.createElement('a');
+                            a.href = objectURL;
+                            a.download = fileName;
+    
+                            document.body.appendChild(a);
+                            a.click();
+    
+                            document.body.removeChild(a);
+    
+                            URL.revokeObjectURL(objectURL);
+                            resolve(`File ${fileName} downloaded successfully`);
+                        } else {
+                            reject(new Error(`Failed to download ${fileName}`));
+                        }
+                    };
+    
+                    xhr.onerror = () => {
+                        reject(new Error(`Network error while downloading ${fileName}`));
+                    };
+    
+                    xhr.open('GET', url);
+                    xhr.send();
+                })
+                .catch((error) => {
+                    reject(error);
+                });
+        });
+    }
+    
+    const handleDownload = (fileName) => {
+        toast.promise(downloadFile(fileName), {
+            loading: 'Downloading...',
+            success: (message) => message,
+            error: (error) => `Error downloading file: ${error.message}`,
+        });
+    };
+
+    useEffect(() => {
+        const click = (event) => {
+            if(searchComponent.current && !searchComponent.current.contains(event.target)){
+                if(dropdownComponent.current && dropdownComponent.current.contains(event.target)){
+                    setSearchDropdown(false);
+                }
+            }
+        };
+
+        document.addEventListener('click', click);
+        
+        return () => {
+            document.addEventListener('click', click);
+        }
+    }, [searchDropdown]);
+    
   
     return(
         <div className="flex bg-no-repeat bg-right-bottom dark:bg-gray-950 h-screen overflow-hidden': isSideMenuOpen }" style={{ backgroundImage: `url(${myImage})` }}>   
            
            <SideBar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+           <Toaster richColors expand={false} position="bottom-center"/>
 
             <div className='class="flex flex-col flex-1 w-full"'>
             <header className='justify-content z-10 mt-5 bg-white shadow-md dark:bg-gray-950'>
@@ -189,13 +361,39 @@ export default function Files(){
                             </svg>
                         </button>
                     </div>
-                    <div className=" relative w-40 md:w-full max-w-xl mr-6 focus-within:text-purple-500">
-                        <div className="absolute mb-6 inset-y-0 flex items-center pl-2">
-                        <svg className="w-4 h-4" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd"></path>
-                        </svg>
-                        </div>
-                        <input className="w-full pl-8 pr-2 text-large dark:text-black    text-black placeholder-blue-600 bg-gray-200 border-0 rounded-md dark:placeholder-gray-500 dark:focus:shadow-outline-blue dark:focus:placeholder-gray-600 dark:bg-gray-200 focus:placeholder-gray-500 focus:bg-white focus:border-red-300 focus:outline-none focus:shadow-outline-purple focus:text-blue-500 form-input" type="text" placeholder="Search" aria-label="Search"></input>
+                    <div className="items-center relative w-40 md:w-full max-w-xl mr-6 focus-within:text-purple-500">
+                        <div className='flex items-center'>
+                            <div className="absolute flex items-center pl-2">
+                                <Magnify/>
+                            </div>
+                            <input
+                                ref={searchComponent}
+                                className="w-full pl-8 pr-2 text-lg dark:text-black text-black placeholder-black bg-gray-200 border-0 rounded-md dark:placeholder-gray-500 dark:focus:shadow-outline-blue dark:focus:placeholder-gray-600 dark:bg-gray-200 focus:placeholder-gray-500 focus:bg-white focus:border-red-300 focus:outline-none focus:shadow-outline-purple focus:text-blue-500 form-input"
+                                type="text"
+                                placeholder="Search files (by file name)"
+                                aria-label="Search Files"
+                                onClick={toggleDropdown}
+                                onChange={handleSearchInput}
+                            />             
+                        </div>           
+                        <ul
+                            ref={dropdownComponent}
+                            onClick={() => setSearchDropdown(true)}
+                            className={`z-50 absolute mt-2 w-full bg-white border rounded-md border-gray-300 shadow-lg ${searchDropdown ? '' : 'hidden'}`}
+                        >
+                            {filteredData.slice(0, 10).map((file) => (
+                                <div key={file} className='flex flex-col group'>
+                                    <ul className='px-4 py-2 hover:bg-gray-100 cursor-pointer'>
+                                        <li>{file.fileName} | {file.team}</li>
+                                        <small>{renamePath(file.path)}</small>
+                                    </ul>
+                                    <div className='max-h-0 overflow-hidden transition-max-height group-hover:max-h-full flex flex-col bg-white border rounded-md border-gray-300 shadow-lg mt-2'>
+                                        <button className='hover:bg-gray-100' onClick={() => {setDeleteMenu(true); setSelected(file); toggleDropdown();}}>Delete</button>
+                                        <button className='hover:bg-gray-100' onClick={() => {handleDownload(file.fileName); toggleDropdown(); setSelected(file);}}>Download</button>
+                                    </div>
+                                </div>
+                            ))}
+                        </ul>
                     </div> 
                     <div className='mt-1'>
                         <DarkMode/>
@@ -250,6 +448,16 @@ export default function Files(){
                         </div>
                         )}
                     </div>
+
+                    {deleteMenu && selected && (
+                    <div className='fixed top-0 left-0 w-full h-full flex items-center justify-center z-50 drop-shadow-lg bg-black bg-opacity-50'>
+                        <div className='bg-white dark:bg-gray-900 rounded-lg p-4 shadow-md'>
+                            <h2 className='text-lg font-semibold mb-4'>Are you sure you want to delete {selected.fileName}?</h2>
+                            <button className='bg-red-500 text-white py-2 px-4 rounded mr-2 hover:bg-blue-600' onClick={() => deleteFile(selected.fileName)}>Yes</button>
+                            <button className='bg-gray-300 text-gray-700 py-2 px-4 rounded hover-bg-gray-400' onClick={() => closeDelete()}>Cancel</button>
+                        </div>
+                    </div>
+                    )}
 
                     {teamName !== '' ? (
                         <div key={fileListKey}>
