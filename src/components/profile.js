@@ -41,29 +41,24 @@ const UpdateProfileForm = () => {
   };
 
   return (
-    <div className='bg-gray-100 dark:text-white dark:bg-gray-900 overflow-y-hidden'>
+    <div className='bg-gray-100 top-0 dark:text-white dark:bg-gray-900 h-screen'>
 
-      <header className='relative dark:text-white justify-content  py-8 bg-white shadow-md dark:bg-gray-950'>
-            <div className='absolute mt-5 right-5 top-0'>
-              <DarkMode/>
-            </div>
-            <div className='absolute  mt-5 left-0 top-0'>
-              <a href="/dashboard" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-4">
-              Dashboard
-                </a>
-            </div>
-              
-          
-          <div className="flex md:justify-center flex-1 lg:mr-32">
-             
-          </div>                 
-      </header>
+            <header className='overflow-y-hidden dark:text-white justify-content  py-8 bg-white shadow-md dark:bg-gray-950'>
+                  <div className='absolute mt-5 right-5 top-0'>
+                    <DarkMode/>
+                  </div>
+                  <div className='absolute  mt-5 left-0 top-0'>
+                    <a href="/dashboard" className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded ml-4">
+                    Dashboard
+                      </a>
+                  </div>
+            </header>
 
       
       
-        <div className="flex justify-between items-center dark:bg-gray-900 rounded bg-gray-100 min-h-screen">
+        <div className="flex justify-between items-center dark:bg-gray-900 rounded bg-gray-100 pt-14">
               
-        <div className="mx-auto max-w-md p-6 dark:text-white dark:bg-gray-950 bg-white rounded-lg shadow-lg">
+        <div className="mx-auto max-w-md p-6 dark:text-white dark:bg-gray-950  bg-white  rounded-lg shadow-lg">
           <div className="mb-4 text-center">
             <h1 className="text-2xl font-bold text-indigo-600">Welcome, {user && user.email}</h1>
           </div>
