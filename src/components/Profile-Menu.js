@@ -37,7 +37,7 @@ const ProfileMenu = () => {
                   console.error('Error fetching user data:', error);
                 }
               }
-            };
+            };fetchUserData()
 
           },[currentUser])
   
