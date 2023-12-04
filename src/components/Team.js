@@ -10,6 +10,7 @@ import { pushNotifications } from './notifications';
 import FileList from './FileList';
 import Files from './Files';
 import { Toaster, toast } from 'sonner'
+import QRCode from 'qrcode.react';
 
 export default function Team() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -341,10 +342,17 @@ export default function Team() {
         user: userID,
     });
 
+    const url = `https://privo.pages.dev/invite?ref=${inviteDocRef.id}`;
+
+    handleCloseInviteModal();
+
     toast(
-      <div className="text-lg">
+      <div className="text-lg flex flex-col items-center justify-center">
+        <div className="p-5">
+            <QRCode value={url} size={200} />
+        </div>
         <p>Sent Invite Successfully!</p>
-        <a href = {`https://privo.pages.dev/invite?ref=${inviteDocRef.id}`}
+        <a href = {url}
         className="text-blue-500 hover:text-blue-700">
           https://privo.pages.dev/invite?ref={inviteDocRef.id}</a>
       </div>
