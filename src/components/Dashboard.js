@@ -459,21 +459,23 @@ export default function Dashboard({user}){
                                 ))}
                             </div>
                             <div className='p-5 bg-slate-50 h-1/3 rounded-xl'>
-                            {tasks.length > 0 ? (
-                                <ul className="divide-y divide-gray-300">
-                                {tasks.map((task) => (
-                                    <li key={task.id} className="py-4">
-                                    <div className="bg-white rounded-lg shadow-md p-4">
-                                        <h1 className="text-xl font-semibold">{task.taskName}</h1>
-                                        <p className="text-gray-600">{task.date}</p>
-                                        <p className="text-gray-600">{task.team}</p>
-                                    </div>
-                                    </li>
-                                ))}
-                                </ul>
-                            ) : (
-                                <p className="text-gray-600">No tasks assigned to you.</p>
-                            )}
+                                <div style={{ maxHeight: '100%', overflowY: 'auto' }}>
+                                    {tasks.length > 0 ? (
+                                    <ul className="divide-y divide-gray-300">
+                                        {tasks.map((task) => (
+                                        <li key={task.id} className="py-4">
+                                            <div className="bg-white rounded-lg shadow-md p-4">
+                                            <h1 className="text-xl font-semibold">{task.taskName}</h1>
+                                            <p className="text-gray-600">{task.date}</p>
+                                            <p className="text-gray-600">{task.team}</p>
+                                            </div>
+                                        </li>
+                                        ))}
+                                    </ul>
+                                    ) : (
+                                    <p className="text-gray-600">No tasks assigned to you.</p>
+                                    )}
+                                </div>
                             </div>
                         </div>
 

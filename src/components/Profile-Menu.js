@@ -27,7 +27,7 @@
         };
           const [open,setOpen] = useState(false)
           return(
-            <div className='menu-contianer'>
+            <div className='menu-container'>
             <div className='menu-trigger' onClick={()=>{setOpen(!open)}}>
                 <img alt='profile' src={photoURL}></img>
             </div>

@@ -113,29 +113,13 @@ export default function Files(){
 
     const handleAddToTeam = async () => {
         
-        const currentLoggedEmail = auth.currentUser.email;
-        console.log(currentLoggedEmail);
         console.log("adding to team...");
-        
-        const teamRef = doc(db, 'team', teamDoc);
-        const docSnap = await getDoc(teamRef);
 
-        if (docSnap.exists()) {
-            // TODO: implement this code block
-
-            const currentMembers = docSnap.data().members || [];
-            console.log("currentMembers: ", currentMembers);
-            currentMembers.push(currentLoggedEmail);
-            // await updateDoc(teamDoc, {
-            //     members: currentMembers,
-            //   });
-            // currentTeams.push(selectedId);
-            // const userDoc = doc(userCollection, userSnapshot.docs[0].id);
-            // await updateDoc(userDoc, { teams: currentTeams });
-
-        } else {
-            alert('Error reading document.');
-        }
+        // if (docSnap.exists()) {
+        //     addUserToTeam();
+        // } else {
+        //     alert('Error reading document.');
+        // }
 
         closeInviteModal();
     }
@@ -143,6 +127,47 @@ export default function Files(){
     const openInviteModal = () => {
         setIsInviteModalOpen(true);
     };
+
+    const addUserToTeam = async () => {
+        // const currentLoggedEmail = auth.currentUser.email;
+        // console.log(currentLoggedEmail);
+
+        // try {
+        //   // Reference to the team document
+        //   const teamCollection = collection(db, 'team');
+        //   const teamDoc = doc(teamCollection, selectedId);
+      
+        //   // Reference to the user collection
+        //   const userCollection = collection(db, 'users');
+          
+        //   // Query for the selected user by their name (you can change this based on your database structure)
+        //   const userQuery = query(userCollection, where('email', '==', selectedUser));
+        //   const userSnapshot = await getDocs(userQuery);
+      
+        //   // Get the current teams of the selected user
+        //   const currentTeams = userSnapshot.docs[0].data().teams || [];
+      
+        //   // Retrieve the current team document
+        //   const docSnapshot = await getDoc(teamDoc);
+        //   const currentMembers = docSnapshot.data().members || [];
+      
+        //   // Add the selectedUser to the current members
+        //   currentMembers.push(newMember);
+      
+        //   // Update the members in the team document
+        //   await updateDoc(teamDoc, {
+        //     members: currentMembers,
+        //   });
+      
+        //   // Update the user's "teams" array
+        //   currentTeams.push(selectedId);
+        //   const userDoc = doc(userCollection, userSnapshot.docs[0].id);
+        //   await updateDoc(userDoc, { teams: currentTeams });
+      
+        // } catch (error) {
+        //   console.error('Error adding member:', error);
+        // }
+      };
 
     const closeInviteModal = () => {
         setIsInviteModalOpen(false);
