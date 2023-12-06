@@ -110,52 +110,6 @@ export default function Files(){
         }
     };
 
-    const handleAddToTeam = async () => {
-        console.log("adding to team...");
-    
-        const currentLoggedEmail = auth.currentUser.email;
-        const teamInvitation = inviteDoc.team;
-    
-        try {
-            const teamCollection = collection(db, 'team');
-            const teamDoc = doc(teamCollection, teamInvitation);
-    
-            const userCollection = collection(db, 'users');
-            const userQuery = query(userCollection, where('email', '==', currentLoggedEmail));
-            const userSnapshot = await getDocs(userQuery);
-    
-            const currentTeams = userSnapshot.docs[0].data().teams || [];
-    
-            if (!currentTeams.includes(teamInvitation)) {
-                currentTeams.push(teamInvitation);
-    
-                const userDoc = doc(userCollection, userSnapshot.docs[0].id);
-                await updateDoc(userDoc, { teams: currentTeams });
-    
-                toast.success(`You are now a member of ${teamInvitation}!`);
-            } else {
-                toast.warning(`You are already a member of ${teamInvitation}.`);
-            }
-    
-            const docSnapshot = await getDoc(teamDoc);
-            const currentMembers = docSnapshot.data().members || [];
-    
-            if (!currentMembers.includes(currentLoggedEmail)) {
-                currentMembers.push(currentLoggedEmail);
-    
-                await updateDoc(teamDoc, {
-                    members: currentMembers,
-                });
-            } else {
-                console.log(`${currentLoggedEmail} is already a member of ${teamInvitation}.`);
-            }
-        } catch (error) {
-            console.error('Error adding member:', error);
-        }
-    
-        closeInviteModal();
-    };    
-
     const openInviteModal = () => {
         setIsInviteModalOpen(true);
     };
@@ -501,7 +455,18 @@ export default function Files(){
                                     </button>
                                 </div>}     
                                 {isInviteModalOpen && (
-                                    <Invite code={teamCode} className='p-4 h-auto'/>
+                                    <span>
+                                        <Invite code={teamCode} className='p-4 h-auto'/>
+                                        <button
+                                            onClick={closeInviteModal}
+                                            type="button"
+                                            className="w-full inline-flex justify-center rounded-full border border-transparent shadow-sm p-3 bg-gray-500 text-white font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto m-5 hover:brightness-110"
+                                            >
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </span>
                                 )}
                             </div>
                         </div>

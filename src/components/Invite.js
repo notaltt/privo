@@ -207,10 +207,20 @@ const Invite = ({ code, className }) => {
   };
 
   const navigate = useNavigate();
-  const navigateToFiles = () => { navigate('/files'); };
+  const navigateToFiles = () => {
+    const targetPath = '/files';
+    if (location.pathname === targetPath){
+      console.log('refreshing');
+      window.location.reload();
+    }
+    else{
+      console.log(location);
+      navigate(targetPath);
+    }
+  };
 
   return (
-    <div className={`flex flex-col items-center justify-center space-y-4 bg-slate-200 h-screen ${className}`}>
+    <div className={`flex flex-col items-center justify-center space-y-4 bg-slate-200 ${className || 'h-screen'}`}>
       <div className="bg-white p-8 rounded-lg shadow-lg">
         {inviteData && !isExpired ?
             currentUser.uid === inviteData.user || isManager? (
