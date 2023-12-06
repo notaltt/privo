@@ -115,11 +115,7 @@ export default function Files(){
         
         console.log("adding to team...");
 
-        // if (docSnap.exists()) {
-        //     addUserToTeam();
-        // } else {
-        //     alert('Error reading document.');
-        // }
+        addUserToTeam();
 
         closeInviteModal();
     }
@@ -129,45 +125,38 @@ export default function Files(){
     };
 
     const addUserToTeam = async () => {
-        // const currentLoggedEmail = auth.currentUser.email;
-        // console.log(currentLoggedEmail);
+        const currentLoggedEmail = auth.currentUser.email;
+        const teamInvitation = inviteDoc.team;
 
-        // try {
-        //   // Reference to the team document
-        //   const teamCollection = collection(db, 'team');
-        //   const teamDoc = doc(teamCollection, selectedId);
-      
-        //   // Reference to the user collection
-        //   const userCollection = collection(db, 'users');
-          
-        //   // Query for the selected user by their name (you can change this based on your database structure)
-        //   const userQuery = query(userCollection, where('email', '==', selectedUser));
-        //   const userSnapshot = await getDocs(userQuery);
-      
-        //   // Get the current teams of the selected user
-        //   const currentTeams = userSnapshot.docs[0].data().teams || [];
-      
-        //   // Retrieve the current team document
-        //   const docSnapshot = await getDoc(teamDoc);
-        //   const currentMembers = docSnapshot.data().members || [];
-      
-        //   // Add the selectedUser to the current members
-        //   currentMembers.push(newMember);
-      
-        //   // Update the members in the team document
-        //   await updateDoc(teamDoc, {
-        //     members: currentMembers,
-        //   });
-      
-        //   // Update the user's "teams" array
-        //   currentTeams.push(selectedId);
-        //   const userDoc = doc(userCollection, userSnapshot.docs[0].id);
-        //   await updateDoc(userDoc, { teams: currentTeams });
-      
-        // } catch (error) {
-        //   console.error('Error adding member:', error);
-        // }
-      };
+        try {
+            const teamCollection = collection(db, 'team');
+            const teamDoc = doc(teamCollection, teamInvitation);
+        
+            const userCollection = collection(db, 'users');
+            const userQuery = query(userCollection, where('email', '==', currentLoggedEmail));
+            const userSnapshot = await getDocs(userQuery);
+        
+            const currentTeams = userSnapshot.docs[0].data().teams || [];
+        
+            const docSnapshot = await getDoc(teamDoc);
+            const currentMembers = docSnapshot.data().members || [];
+        
+            currentMembers.push(currentLoggedEmail);
+        
+            await updateDoc(teamDoc, {
+            members: currentMembers,
+            });
+        
+            currentTeams.push(teamInvitation);
+            const userDoc = doc(userCollection, userSnapshot.docs[0].id);
+            await updateDoc(userDoc, { teams: currentTeams });
+
+            toast.success(`You are now a member of ${teamInvitation}!`);
+        
+        } catch (error) {
+            console.error('Error adding member:', error);
+        }
+    };
 
     const closeInviteModal = () => {
         setIsInviteModalOpen(false);
@@ -498,7 +487,7 @@ export default function Files(){
                                     <div className="flex-1 border-t border-gray-300"></div>
                                 </div>
                                 <div className="text-xl">JOIN A TEAM</div>
-                                <div className='flex'>
+                                <div className='flex m-2'>
                                     <input
                                         className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300"
                                         type="text"
