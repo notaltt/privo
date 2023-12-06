@@ -54,15 +54,21 @@ function Tasks({ user }) {
     try {
       const q = query(collection(db, 'tasks'), where('team', '==', teamId));
       const snapshot = await getDocs(q);
-    
-      const fetchedTasks = snapshot.docs.map(doc => ({
-        id: doc.id,
-        taskName: doc.data().taskName,
-        assignedUser: doc.data().assignedUser,
-        date: doc.data().date,
-        description: doc.data().description
-      }));
-    
+  
+      const fetchedTasks = snapshot.docs.map(doc => {
+        const createdAtTimestamp = doc.data().createdAt; // Firestore Timestamp
+        const formattedDate = createdAtTimestamp.toDate().toISOString().split('T')[0]; // Convert Firestore Timestamp to string "YYYY-MM-DD"
+  
+        return {
+          id: doc.id,
+          taskName: doc.data().taskName,
+          assignedUser: doc.data().assignedUser,
+          date: doc.data().deadline,
+          dateAdded: doc.data().createdAt,
+          description: doc.data().description
+        };
+      });
+  
       setTasks(fetchedTasks);
     } catch (error) {
       console.error("Error fetching tasks:", error);
@@ -70,6 +76,7 @@ function Tasks({ user }) {
       setIsLoading(false);
     }
   };
+  
   
   useEffect(() => {
     if (selectedTeam) {
@@ -231,7 +238,7 @@ function Tasks({ user }) {
       await addDoc(tasksCollection, {
         team: selectedTeam,
         taskName: taskName,
-        date: taskDate,
+        deadline: taskDate,
         assignedUser: selectedUserEmail,
         description: taskDescription,
         createdAt: Timestamp.now(),
@@ -493,12 +500,16 @@ function Tasks({ user }) {
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl overflow-hidden max-w-lg w-full mx-4">
               <div className="p-6">
                 <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Task Name: {selectedTask.taskName}</h3>
-                <h1 className="text-gray-700 dark:text-gray-300">Date added: </h1>
-                <h1 className="text-gray-700 dark:text-gray-300">Deadline: {selectedTask.date} </h1>
+                <h1 className="text-gray-700 dark:text-gray-300">
+                  Date added: {selectedTask.dateAdded?.toDate().toLocaleDateString('en-US')}
+                </h1>
+                <h1 className="text-gray-700 dark:text-gray-300">
+                  Deadline: {selectedTask.date}
+                </h1>
                 <h1 className="text-gray-700 dark:text-gray-300">Assigned to: {selectedTask.assignedUser} </h1>
                 
                 <div className="border border-gray-300 dark:border-gray-700 p-3 rounded-md">
-                  <p className="text-gray-700 dark:text-gray-300">{selectedTask.description}</p>
+                <p className="text-gray-700 dark:text-gray-300">{selectedTask.description}</p>
                 </div>
                 
                 <div className="mt-4">

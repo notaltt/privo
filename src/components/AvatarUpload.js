@@ -25,7 +25,12 @@ export default function AvatarUpload() {
 
   return (
     <div className="flex flex-col items-center justify-center space-y-4">
-      <input type="file" onChange={handleChange} className="mb-2" />
+      <label htmlFor="avatarInput" className="cursor-pointer">
+        <input type="file" id="avatarInput" onChange={handleChange} className="hidden" />
+        <div className="mb-2">
+          <img src={photoURL} alt="Avatar" className="w-32 h-32 rounded-full cursor-pointer" />
+        </div>
+      </label>
       <button
         disabled={loading || !photo}
         onClick={handleClick}
@@ -33,7 +38,6 @@ export default function AvatarUpload() {
       >
         Upload
       </button>
-      <img src={photoURL} alt="Avatar" className="w-32 h-32 rounded-full" />
     </div>
   );
 }
