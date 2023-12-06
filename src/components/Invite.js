@@ -127,13 +127,10 @@ const Invite = () => {
     <div className="flex flex-col items-center justify-center space-y-4 h-screen bg-slate-200">
       <div className="bg-white p-8 rounded-lg shadow-lg">
         {inviteData ?
-          hasDoc ?
             currentUser.uid === inviteData.user || isManager? (
               <div className='flex flex-col items-center justify-center'>
                 <h2 className="text-4xl font-semibold mb-2">{isManager ? 'Invite Details'  : 'You have been invited!'}</h2>
-                <div className="mb-4 p-5">
-                  <QRCode value={URL} size={200} />
-                </div>
+                <QRCode value={URL} size={200} className="mb-4 p-5"/>
                 <p className="mb-1">ID: {inviteData.id}</p>
                 <p className="mb-1">Manager: {inviteData.manager}</p>
                 <p className="mb-1">Team: {inviteData.team}</p>
@@ -143,14 +140,11 @@ const Invite = () => {
                 <button onClick={addUserToTeam} className="m-4 px-4 py-2 bg-blue-500 text-white rounded-md">Join Team {inviteData.team}</button> : <div/>}
                 <div className = {loading ? "animate-spin rounded-full h-10 w-10 border-t-4 border-blue-500 border-solid m-2" : ''}></div>
               </div>
-                ): (
-                  <p className="text-gray-800">Sorry, this invite isn't for you...</p>
-                  ) : (
-            <p className="text-red-500">Invite does not exist!</p>
-            ) : (
-              <p className="text-gray-800">Loading invite data...</p>
-          )
-        }
+            ): (
+              <p className="text-gray-800">Sorry, this invite isn't for you...</p>
+          ): (
+            <p className="text-gray-800">{hasDoc ? 'Loading invite data...' : 'Invite does not exist!'}</p>
+      )}
       </div>
     </div>
   );
