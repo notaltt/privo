@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import AuthDetails from './AuthDetails';
 import { firestore as db } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, getDocs, where, query, doc, updateDoc, getDoc } from "firebase/firestore";
+import { collection, getDocs, where, query, doc, updateDoc, getDoc, setDoc, arrayUnion } from "firebase/firestore";
 import { auth } from '../../src/components/firebase';
 import { pushNotifications } from './notifications';
 import {ReactComponent as Magnify} from '../images/magnify.svg';
@@ -37,20 +37,13 @@ export default function Dashboard({user}){
     const [selected, setSelected] = useState('');
     const [joinedTeams, setJoinedTeams] = useState();
     const [deleteMenu, setDeleteMenu] = useState(false);
+    const [selectedTeam, setSelectedTeam] = useState('');
+    const [announceData, setAnnounceData] = useState([]);
 
 
     const toggleSidebar = () => {
       setIsSidebarOpen(!isSidebarOpen);
     }
-
-    const announceData = [
-        {
-            name: 'Jerryvel Cabanero',
-            date: 'Thu Nov 02 2023 14:20:01 GMT+0800 (Philippine Standard Time)',
-            content: 'Files should be posted by today.',
-            team: 'Computer Engineering'
-        }
-    ];
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -59,6 +52,7 @@ export default function Dashboard({user}){
                 if (!hasFetched) {
                     getUser(user);
                     fetchNotifications(user);
+                    fetchAnnouncement(user);
                     fetchTeam(user);
                     setHasFetched(true);
                 }
@@ -162,9 +156,9 @@ export default function Dashboard({user}){
             
                 if (notificationSnapshot.exists()) {
                 const data = notificationSnapshot.data();
-                if (data.notificationData && Array.isArray(data.notificationData)) {
-                    notification.push(...data.notificationData);
-                }
+                    if (data.notificationData && Array.isArray(data.notificationData)) {
+                        notification.push(...data.notificationData);
+                    }
                 }
             }
 
@@ -203,19 +197,74 @@ export default function Dashboard({user}){
         console.error("Error fetching team:", error);
         }
         setJoinedTeams(teams);
+        console.log(joinedTeams);
     };
 
-    const openErrorModal = () => {
-        setisErrorModalOpen(true);
+    // const openErrorModal = () => {
+    //     setisErrorModalOpen(true);
+    // };
+
+    // const closeErrorModal = () => {
+
+    //     setisErrorModalOpen(false);
+    // };
+
+    const addAnnouncement = async () => {
+        const announceRef = doc(db, 'announcement', selectedTeam.trim());
+        const announceData = {
+            name: userName,
+            team: selectedTeam.trim(),
+            message: newAnnouncement,
+            date: new Date().toString()
+        };
+
+        const snapshot = await getDoc(announceRef);
+
+        try{
+           if(snapshot.exists()){
+            await updateDoc(announceRef, {
+                announcement: arrayUnion(announceData)
+            });
+           }else{
+            await setDoc(announceRef, {
+                announcement: arrayUnion(announceData)
+            });
+           }
+        }catch(e){
+            console.log(e);
+        }
+
+        fetchAnnouncement(currentUser);
     };
 
-    const closeErrorModal = () => {
-        setisErrorModalOpen(false);
-    };
+    const fetchAnnouncement = async (user) => {
+        let announcementData = [];
+        try{
+            const userRef = doc(db, 'users', user.uid);
+            const userSnapshot = await getDoc(userRef);
 
-    const addAnnouncement = () => {
-        
-    };
+            if(userSnapshot.exists()){
+                const userData = userSnapshot.data();
+                const userTeams = userData.teams || [];
+
+                for(const team of userTeams){
+                    const announceRef = doc(db, 'announcement', team);
+                    const announceSnapShot = await getDoc(announceRef);
+
+                    if(announceSnapShot.exists()){
+                        const data = announceSnapShot.data();
+                        if(data.announcement && Array.isArray(data.announcement)){
+                            announcementData.push(...data.announcement);
+                        }
+                    }
+                }
+            }
+            announcementData.sort((a, b) => new Date(b.date) - new Date(a.date));
+        }catch(e){
+            console.log(e);
+        }
+        setAnnounceData(announcementData);
+    }
 
     const renamePath = (path) => {
         const segments = path.split('/');
@@ -436,6 +485,16 @@ export default function Dashboard({user}){
                                         placeholder="Add a new announcement"
                                         className="w-full p-2 border border-gray-200 rounded"
                                     />
+                                    <select value={selectedTeam} onChange={(e) => setSelectedTeam(e.target.value)}>
+                                        <option value="" disabled hidden>
+                                            Select a Team
+                                        </option>
+                                        {joinedTeams && joinedTeams.map((team) => (
+                                            <option key={team.id} value={team.teamName}>
+                                                {team.teamName}
+                                            </option>
+                                        ))}
+                                    </select>
                                     <button
                                         onClick={addAnnouncement}
                                         className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -444,19 +503,23 @@ export default function Dashboard({user}){
                                     </button>
                                     </div>
                                 )}
-                                {announceData.map((data, index) => (
-                                    <div key={index} className="flex p-4 border border-gray-200 rounded mb-4">
-                                        <div className="flex-1">
-                                            <div className="mb-2 flex items-center justify-between">
-                                                <span className="font-semibold">{data.name}</span>
-                                                <p className="ml-2">{data.content} | {data.team}</p>
-                                            <div className="text-gray-500 text-sm">
-                                                {calculateTimePassed(data.date)} 
-                                            </div>
+                                {announceData.length > 0 ? (
+                                    announceData.map((data, index) => (
+                                        <div key={index} className="flex p-4 border border-gray-200 rounded mb-4">
+                                            <div className="flex-1">
+                                                <div className="mb-2 flex items-center justify-between">
+                                                    <span className="font-semibold">{data.name}</span>
+                                                    <p className="ml-2">{data.message} | {data.team}</p>
+                                                <div className="text-gray-500 text-sm">
+                                                    {calculateTimePassed(data.date)} 
+                                                </div>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))
+                                ):(
+                                    <div>No announcements</div>
+                                )}
                             </div>
                             <div className='p-5 bg-slate-50 h-1/3 rounded-xl'>
                                 <div style={{ maxHeight: '100%', overflowY: 'auto' }}>
