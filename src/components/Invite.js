@@ -1,21 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { firestore as db } from "./firebase";
-import { collection, getDocs, where, query, doc, getDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, where, query, doc, getDoc, updateDoc, deleteDoc, onSnapshot } from "firebase/firestore";
 import QRCode from 'qrcode.react';
 import { auth } from '../../src/components/firebase';
 import { useNavigate } from 'react-router-dom';
+import { differenceInMinutes, differenceInSeconds } from 'date-fns';
 
-const Invite = () => {
+const Invite = ({ ref }) => {
   const location = useLocation();
-  const inviteId = new URLSearchParams(location.search).get('ref');
+  const param = new URLSearchParams(location.search).get('ref');
+  const inviteId = ref || param || 'invalid';
   
   const [inviteData, setInviteData] = useState(null);
   const [hasDoc, setHasDoc] = useState(true);
   const [URL, setURL] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
   const [isManager, setIsManager] = useState(false);
+  const [isExpired, setIsExpired] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [timeDifference, setTimeDifference] = useState({minutes:0, seconds:0});
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -29,6 +33,56 @@ const Invite = () => {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const inviteDocRef = doc(db, 'invites', inviteId);
+
+    const unsubscribe = onSnapshot(inviteDocRef, async (docSnapshot) => {
+      const inviteDocSnapshot = await getDoc(inviteDocRef);
+  
+      if (inviteDocSnapshot.exists()) {
+        const updatedInviteData = docSnapshot.data();
+        setInviteData(updatedInviteData);
+      }
+    });
+  
+    return () => unsubscribe();
+  }, [inviteId, db, setIsExpired]);
+
+  useEffect(() => {
+    const deleteThisShit = async () => {
+      const inviteDocRef = doc(db, 'invites', inviteId);
+
+      await deleteDoc(inviteDocRef);
+      setIsExpired(true);
+      console.log(`Invite with ID ${inviteId} deleted.`);
+    };
+
+    const intervalId = setInterval(() => {
+      const currentTime = new Date();
+      let t = currentTime;
+
+      if (inviteData) {
+        t = inviteData.time.toDate();
+      }
+
+      const minutesDifference = differenceInMinutes(currentTime, t);
+      const secondsDifference = differenceInSeconds(currentTime, t) % 60;
+
+      if (minutesDifference == 60) deleteThisShit();
+
+      setTimeDifference({
+        minutes: minutesDifference,
+        seconds: secondsDifference,
+      });
+
+    }, 1000);
+
+    return () => {
+      // Cleanup function to clear the interval when the component unmounts
+      clearInterval(intervalId);
+    };
+  }, [inviteData]);
 
   useEffect(() => {
     const checkUserRole = async (user) => {
@@ -82,7 +136,30 @@ const Invite = () => {
       fetchInviteData();
   
     return () => {};
-  }, [inviteId]);
+  }, [inviteId, isExpired]);
+
+  useEffect(() => {
+    const checkInvite = async () => {
+      try {
+        const inviteDocRef = doc(db, 'invites', inviteId);
+        const thresholdTime = new Date(Date.now() - 60 * 60 * 1000);
+
+        if (inviteData && inviteData.time.toDate() < thresholdTime) {
+          // Delete the invite entry if it exceeds 1 hour
+          await deleteDoc(inviteDocRef);
+          setIsExpired(true);
+          console.log(`Invite with ID ${inviteId} deleted.`);
+        }
+      } catch (error) {
+        console.error('Error fetching invite data:', error);
+      }
+    }
+
+    if (inviteData)
+      checkInvite();
+  
+    return () => {};
+  }, [inviteData]);
 
   const addUserToTeam = async () => {
     setLoading(true);
@@ -102,18 +179,27 @@ const Invite = () => {
     
         const docSnapshot = await getDoc(teamDoc);
         const currentMembers = docSnapshot.data().members || [];
-    
-        currentMembers.push(currentLoggedEmail);
-    
-        await updateDoc(teamDoc, {
-        members: currentMembers,
-        });
-    
-        currentTeams.push(teamInvitation);
-        const userDoc = doc(userCollection, userSnapshot.docs[0].id);
-        await updateDoc(userDoc, { teams: currentTeams });
 
-        navigateToTeams();
+        if (!currentTeams.includes(teamInvitation)) {
+          currentTeams.push(teamInvitation);
+
+          const userDoc = doc(userCollection, userSnapshot.docs[0].id);
+          await updateDoc(userDoc, { teams: currentTeams });
+        } else {
+          console.log(`${teamInvitation} is already a team of ${currentLoggedEmail}.`);
+        }
+
+        if (!currentMembers.includes(currentLoggedEmail)) {
+            currentMembers.push(currentLoggedEmail);
+
+            await updateDoc(teamDoc, {
+                members: currentMembers,
+            });
+        } else {
+            console.log(`${currentLoggedEmail} is already a member of ${teamInvitation}.`);
+        }
+
+        navigateToFiles();
     
     } catch (error) {
         console.error('Error adding member:', error);
@@ -121,21 +207,24 @@ const Invite = () => {
   };
 
   const navigate = useNavigate();
-  const navigateToTeams = () => { navigate('/teams'); };
+  const navigateToFiles = () => { navigate('/files'); };
 
   return (
     <div className="flex flex-col items-center justify-center space-y-4 h-screen bg-slate-200">
       <div className="bg-white p-8 rounded-lg shadow-lg">
-        {inviteData ?
+        {inviteData && !isExpired ?
             currentUser.uid === inviteData.user || isManager? (
               <div className='flex flex-col items-center justify-center'>
                 <h2 className="text-4xl font-semibold mb-2">{isManager ? 'Invite Details'  : 'You have been invited!'}</h2>
-                <QRCode value={URL} size={200} className="mb-4 p-5"/>
-                <p className="mb-1">ID: {inviteData.id}</p>
-                <p className="mb-1">Manager: {inviteData.manager}</p>
-                <p className="mb-1">Team: {inviteData.team}</p>
-                <p className="mb-1">Time: {inviteData.time.toDate().toString()}</p>
-                <p className="mb-1">User: {inviteData.user}</p>
+                <QRCode value={URL} size={200} className="m-7"/>
+                <p className="mb-1 text-gray-600">Code ref: <span className='underline'>{inviteId}</span></p>
+                <p className="mb-3 text-gray-600">User ref: {inviteData.user}</p>
+                <p>Manager: {inviteData.manager}</p>
+                <p>Team: {inviteData.team}</p>
+                <p className="mb-3">
+                  {timeDifference['minutes'] > 0 && `${timeDifference['minutes']} minute${timeDifference['minutes'] > 1 ? 's' : ''} `}
+                  {timeDifference['seconds']} second{timeDifference['seconds'] !== 1 && 's'} ago.
+                </p>
                 {currentUser.uid === inviteData.user ?
                 <button onClick={addUserToTeam} className="m-4 px-4 py-2 bg-blue-500 text-white rounded-md">Join Team {inviteData.team}</button> : <div/>}
                 <div className = {loading ? "animate-spin rounded-full h-10 w-10 border-t-4 border-blue-500 border-solid m-2" : ''}></div>
@@ -143,7 +232,9 @@ const Invite = () => {
             ): (
               <p className="text-gray-800">Sorry, this invite isn't for you...</p>
           ): (
-            <p className="text-gray-800">{hasDoc ? 'Loading invite data...' : 'Invite does not exist!'}</p>
+            <p className="text-gray-800">{hasDoc ?
+              'Loading invite data...' : isExpired ?
+              'Sorry, this invite is expired.' : 'Invite does not exist!'}</p>
       )}
       </div>
     </div>

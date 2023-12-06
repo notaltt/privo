@@ -112,50 +112,53 @@ export default function Files(){
     };
 
     const handleAddToTeam = async () => {
-        
         console.log("adding to team...");
-
-        addUserToTeam();
-
-        closeInviteModal();
-    }
-
-    const openInviteModal = () => {
-        setIsInviteModalOpen(true);
-    };
-
-    const addUserToTeam = async () => {
+    
         const currentLoggedEmail = auth.currentUser.email;
         const teamInvitation = inviteDoc.team;
-
+    
         try {
             const teamCollection = collection(db, 'team');
             const teamDoc = doc(teamCollection, teamInvitation);
-        
+    
             const userCollection = collection(db, 'users');
             const userQuery = query(userCollection, where('email', '==', currentLoggedEmail));
             const userSnapshot = await getDocs(userQuery);
-        
+    
             const currentTeams = userSnapshot.docs[0].data().teams || [];
-        
+    
+            if (!currentTeams.includes(teamInvitation)) {
+                currentTeams.push(teamInvitation);
+    
+                const userDoc = doc(userCollection, userSnapshot.docs[0].id);
+                await updateDoc(userDoc, { teams: currentTeams });
+    
+                toast.success(`You are now a member of ${teamInvitation}!`);
+            } else {
+                toast.warning(`You are already a member of ${teamInvitation}.`);
+            }
+    
             const docSnapshot = await getDoc(teamDoc);
             const currentMembers = docSnapshot.data().members || [];
-        
-            currentMembers.push(currentLoggedEmail);
-        
-            await updateDoc(teamDoc, {
-            members: currentMembers,
-            });
-        
-            currentTeams.push(teamInvitation);
-            const userDoc = doc(userCollection, userSnapshot.docs[0].id);
-            await updateDoc(userDoc, { teams: currentTeams });
-
-            toast.success(`You are now a member of ${teamInvitation}!`);
-        
+    
+            if (!currentMembers.includes(currentLoggedEmail)) {
+                currentMembers.push(currentLoggedEmail);
+    
+                await updateDoc(teamDoc, {
+                    members: currentMembers,
+                });
+            } else {
+                console.log(`${currentLoggedEmail} is already a member of ${teamInvitation}.`);
+            }
         } catch (error) {
             console.error('Error adding member:', error);
         }
+    
+        closeInviteModal();
+    };    
+
+    const openInviteModal = () => {
+        setIsInviteModalOpen(true);
     };
 
     const closeInviteModal = () => {
