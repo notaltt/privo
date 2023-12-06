@@ -7,10 +7,10 @@ import { auth } from '../../src/components/firebase';
 import { useNavigate } from 'react-router-dom';
 import { differenceInMinutes, differenceInSeconds } from 'date-fns';
 
-const Invite = ({ ref }) => {
+const Invite = ({ code, className }) => {
   const location = useLocation();
   const param = new URLSearchParams(location.search).get('ref');
-  const inviteId = ref || param || 'invalid';
+  const inviteId = code || param || 'invalid';
   
   const [inviteData, setInviteData] = useState(null);
   const [hasDoc, setHasDoc] = useState(true);
@@ -19,7 +19,7 @@ const Invite = ({ ref }) => {
   const [isManager, setIsManager] = useState(false);
   const [isExpired, setIsExpired] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [timeDifference, setTimeDifference] = useState({minutes:0, seconds:0});
+  const [timeDifference, setTimeDifference] = useState({minutes:0, seconds:-1});
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -47,11 +47,11 @@ const Invite = ({ ref }) => {
     });
   
     return () => unsubscribe();
-  }, [inviteId, db, setIsExpired]);
+  }, [inviteId, setIsExpired]);
 
   useEffect(() => {
     const deleteThisShit = async () => {
-      const inviteDocRef = doc(db, 'invites', inviteId);
+      const inviteDocRef = doc(db, 'invites', inviteId || '');
 
       await deleteDoc(inviteDocRef);
       setIsExpired(true);
@@ -69,7 +69,7 @@ const Invite = ({ ref }) => {
       const minutesDifference = differenceInMinutes(currentTime, t);
       const secondsDifference = differenceInSeconds(currentTime, t) % 60;
 
-      if (minutesDifference == 60) deleteThisShit();
+      if (minutesDifference === 60) deleteThisShit();
 
       setTimeDifference({
         minutes: minutesDifference,
@@ -82,7 +82,7 @@ const Invite = ({ ref }) => {
       // Cleanup function to clear the interval when the component unmounts
       clearInterval(intervalId);
     };
-  }, [inviteData]);
+  }, [inviteData, inviteId]);
 
   useEffect(() => {
     const checkUserRole = async (user) => {
@@ -155,11 +155,11 @@ const Invite = ({ ref }) => {
       }
     }
 
-    if (inviteData)
+    if (inviteData && inviteId)
       checkInvite();
   
     return () => {};
-  }, [inviteData]);
+  }, [inviteData, inviteId]);
 
   const addUserToTeam = async () => {
     setLoading(true);
@@ -210,7 +210,7 @@ const Invite = ({ ref }) => {
   const navigateToFiles = () => { navigate('/files'); };
 
   return (
-    <div className="flex flex-col items-center justify-center space-y-4 h-screen bg-slate-200">
+    <div className={`flex flex-col items-center justify-center space-y-4 bg-slate-200 h-screen ${className}`}>
       <div className="bg-white p-8 rounded-lg shadow-lg">
         {inviteData && !isExpired ?
             currentUser.uid === inviteData.user || isManager? (
@@ -221,10 +221,11 @@ const Invite = ({ ref }) => {
                 <p className="mb-3 text-gray-600">User ref: {inviteData.user}</p>
                 <p>Manager: {inviteData.manager}</p>
                 <p>Team: {inviteData.team}</p>
+                {timeDifference['seconds'] !== -1 &&
                 <p className="mb-3">
                   {timeDifference['minutes'] > 0 && `${timeDifference['minutes']} minute${timeDifference['minutes'] > 1 ? 's' : ''} `}
                   {timeDifference['seconds']} second{timeDifference['seconds'] !== 1 && 's'} ago.
-                </p>
+                </p>}
                 {currentUser.uid === inviteData.user ?
                 <button onClick={addUserToTeam} className="m-4 px-4 py-2 bg-blue-500 text-white rounded-md">Join Team {inviteData.team}</button> : <div/>}
                 <div className = {loading ? "animate-spin rounded-full h-10 w-10 border-t-4 border-blue-500 border-solid m-2" : ''}></div>
