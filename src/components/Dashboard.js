@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import AuthDetails from './AuthDetails';
 import { firestore as db } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, getDocs, where, query, doc, updateDoc, getDoc, setDoc, arrayUnion } from "firebase/firestore";
+import { collection, getDocs, where, query, doc, updateDoc, getDoc, setDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { auth } from '../../src/components/firebase';
 import { pushNotifications } from './notifications';
 import {ReactComponent as Magnify} from '../images/magnify.svg';
@@ -39,7 +39,8 @@ export default function Dashboard({user}){
     const [deleteMenu, setDeleteMenu] = useState(false);
     const [selectedTeam, setSelectedTeam] = useState('');
     const [announceData, setAnnounceData] = useState([]);
-
+    const [deleteAnnounce, setDeleteAnnounce] = useState(false);
+    const [selectedAnnounce, setSelectedAnnounce] = useState('');
 
     const toggleSidebar = () => {
       setIsSidebarOpen(!isSidebarOpen);
@@ -266,6 +267,27 @@ export default function Dashboard({user}){
         setAnnounceData(announcementData);
     }
 
+    const deleteAnnouncement = async (data) => {
+        const annRef = doc(db, 'announcement', data.team);
+        const annData = {
+            date: data.date,
+            message: data.message,
+            name: data.name,
+            team: data.team
+        };
+
+        try{
+            await updateDoc(annRef, {
+                announcement: arrayRemove(annData)
+            })
+            setDeleteAnnounce(false);
+            toast.success('Annoucement deleted...');
+            fetchAnnouncement(currentUser);
+        }catch(e){
+            console.log(e);
+        }
+    }
+
     const renamePath = (path) => {
         const segments = path.split('/');
         if (segments.length >= 3) {
@@ -393,6 +415,7 @@ export default function Dashboard({user}){
 
     function closeDelete(){
         setDeleteMenu(false);
+        setDeleteAnnounce(false);
     }
 
     useEffect(() => {
@@ -410,6 +433,12 @@ export default function Dashboard({user}){
             document.addEventListener('click', click);
         }
     }, [searchDropdown]);
+
+    function openDelete(data){
+        if(userManager){
+            setDeleteAnnounce(true);        
+        }
+    }
     
     return(
         <div className="flex dark:bg-gray-950 bg-white">  
@@ -474,7 +503,7 @@ export default function Dashboard({user}){
                 <main>
                     <div className='flex flex-row'>
                         <div className='w-3/4 p-5'>
-                            <div className='p-5 h-4/6 rounded-xl '>
+                            <div className='p-5 h-1/2 rounded-xl overflow-y'>
                                 <h1 className='text-left text-3xl font-bold dark:text-white text-gray-700'>Announcements</h1>
                                 {userManager && (
                                     <div className="mb-4 flex gap-3">
@@ -504,19 +533,21 @@ export default function Dashboard({user}){
                                     </div>
                                 )}
                                 {announceData.length > 0 ? (
-                                    announceData.map((data, index) => (
-                                        <div key={index} className="flex p-4 border border-gray-200 rounded mb-4">
-                                            <div className="flex-1">
-                                                <div className="mb-2 flex items-center justify-between">
-                                                    <span className="font-semibold">{data.name}</span>
-                                                    <p className="ml-2">{data.message} | {data.team}</p>
-                                                <div className="text-gray-500 text-sm">
-                                                    {calculateTimePassed(data.date)} 
-                                                </div>
+                                    <div className="announcement-container h-full overflow-y-auto">
+                                        {announceData.map((data, index) => (
+                                            <div key={index} className={`flex p-4 border border-gray-200 rounded mb-4 ${userManager ? 'hover:bg-slate-100 cursor-pointer' : ''}`} onClick={() => {openDelete(); setSelectedAnnounce(data)}}>
+                                                <div className="flex-1" >
+                                                    <div className="mb-2 flex items-center justify-between">
+                                                        <span className="font-semibold">{data.name}</span>
+                                                        <p className="ml-2">{data.message} | {data.team}</p>
+                                                        <div className="text-gray-500 text-sm">
+                                                            {calculateTimePassed(data.date)} 
+                                                        </div>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))
+                                        ))}
+                                    </div>
                                 ):(
                                     <div>No announcements</div>
                                 )}
@@ -541,6 +572,16 @@ export default function Dashboard({user}){
                                 </div>
                             </div>
                         </div>
+
+                        {deleteAnnounce && selectedAnnounce && (
+                            <div className='fixed top-0 left-0 w-full h-full flex items-center justify-center z-50 drop-shadow-lg bg-black bg-opacity-50'>
+                            <div className='bg-white dark:bg-gray-900 rounded-lg p-4 shadow-md'>
+                                <h2 className='text-lg font-semibold mb-4'>Are you sure you want to delete this announcement?</h2>
+                                <button className='bg-red-500 text-white py-2 px-4 rounded mr-2 hover:bg-blue-600' onClick={() => deleteAnnouncement(selectedAnnounce)}>Yes</button>
+                                <button className='bg-gray-300 text-gray-700 py-2 px-4 rounded hover-bg-gray-400' onClick={() => closeDelete()}>Cancel</button>
+                            </div>
+                        </div>
+                        )}
 
                         {deleteMenu && selected && (
                         <div className='fixed top-0 left-0 w-full h-full flex items-center justify-center z-50 drop-shadow-lg bg-black bg-opacity-50'>
