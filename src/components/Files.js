@@ -15,7 +15,7 @@ import { Toaster, toast } from 'sonner'
 import storage from './firebase';
 import { pushNotifications } from './notifications';
 import { deleteFromFirestore } from './fileData';
-
+import Invite from './Invite';
 
 
 export default function Files(){
@@ -100,62 +100,18 @@ export default function Files(){
                     openInviteModal();
                 }
                 else{
-                    alert('Sorry, this code is not for you!');
+                    toast.error('Sorry, this code is not for you!');
                 }
             } else {
-                // docSnap.data() will be undefined in this case
-                alert('Code is unavailable. Code may have expired.');
+                toast.error('Code unavailable! Code must have been expired.');
             }
         } catch (error) {
             console.error('Error fetching invite:', error);
         }
     };
 
-    const handleAddToTeam = async () => {
-        
-        console.log("adding to team...");
-
-        addUserToTeam();
-
-        closeInviteModal();
-    }
-
     const openInviteModal = () => {
         setIsInviteModalOpen(true);
-    };
-
-    const addUserToTeam = async () => {
-        const currentLoggedEmail = auth.currentUser.email;
-        const teamInvitation = inviteDoc.team;
-
-        try {
-            const teamCollection = collection(db, 'team');
-            const teamDoc = doc(teamCollection, teamInvitation);
-        
-            const userCollection = collection(db, 'users');
-            const userQuery = query(userCollection, where('email', '==', currentLoggedEmail));
-            const userSnapshot = await getDocs(userQuery);
-        
-            const currentTeams = userSnapshot.docs[0].data().teams || [];
-        
-            const docSnapshot = await getDoc(teamDoc);
-            const currentMembers = docSnapshot.data().members || [];
-        
-            currentMembers.push(currentLoggedEmail);
-        
-            await updateDoc(teamDoc, {
-            members: currentMembers,
-            });
-        
-            currentTeams.push(teamInvitation);
-            const userDoc = doc(userCollection, userSnapshot.docs[0].id);
-            await updateDoc(userDoc, { teams: currentTeams });
-
-            toast.success(`You are now a member of ${teamInvitation}!`);
-        
-        } catch (error) {
-            console.error('Error adding member:', error);
-        }
     };
 
     const closeInviteModal = () => {
@@ -480,72 +436,39 @@ export default function Files(){
                     ) : (
                         <div className="my-4 p-2 border rounded-lg bg-white mx-auto inline-block">
                             <div className='bg-slate-50 p-2 rounded-lg'>
-                                <div className="text-xl">CLICK AVAILABLE TEAMS</div>
+                                <div className="text-xl mx-5">CLICK AVAILABLE TEAMS</div>
                                 <div className="flex items-center">
                                     <div className="flex-1 border-t border-gray-300"></div>
                                     <div className="mx-4 text-gray-500">OR</div>
                                     <div className="flex-1 border-t border-gray-300"></div>
                                 </div>
-                                <div className="text-xl">JOIN A TEAM</div>
-                                <div className='flex m-2'>
+                                <div className="text-xl mb-3">JOIN A TEAM</div>
+                                {!isInviteModalOpen && <div className='flex m-1'>
                                     <input
-                                        className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring focus:border-blue-300"
+                                        className="w-full px-2 py-1 border rounded-md focus:outline-none focus:ring focus:border-blue-300 text-sm"
                                         type="text"
                                         placeholder="Enter Team Code"
                                         onChange={(e) => setTeamCode(e.target.value)}
                                     />
-                                    <button onClick={handleJoinTeam} className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-md">
+                                    <button onClick={handleJoinTeam} className="ml-2 px-3 py-1.5 bg-blue-500 text-white rounded-md">
                                         JOIN
                                     </button>
-                                </div>
+                                </div>}     
+                                {isInviteModalOpen && (
+                                    <span>
+                                        <Invite code={teamCode} className='p-4 h-auto'/>
+                                        <button
+                                            onClick={closeInviteModal}
+                                            type="button"
+                                            className="w-full inline-flex justify-center rounded-full border border-transparent shadow-sm p-3 bg-gray-500 text-white font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:w-auto m-5 hover:brightness-110"
+                                            >
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-4 h-4">
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </span>
+                                )}
                             </div>
-                        </div>
-                    )}
-                    {isInviteModalOpen && (
-                        <div className="fixed inset-0 overflow-y-auto">
-                        <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-                            <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-                            <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-                            </div>
-
-                            {/* This is your modal */}
-                            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">
-                            &#8203;
-                            </span>
-
-                            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                            {/* Modal content */}
-                            <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                                <div className="sm:flex sm:items-start">
-                                {/* Your content goes here */}
-                                <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
-                                    <h3 className="text-lg leading-6 font-medium text-gray-900">You have been invited to team {inviteDoc.team}!</h3>
-                                    <div className="mt-2">
-                                    <p className="text-sm text-gray-500">{inviteDoc.manager} has invited you to join {inviteDoc.team}.</p>
-                                    <p className="text-sm text-gray-500">{inviteDoc.time ? inviteDoc.time.toDate().toLocaleString() : ''}</p>
-                                    </div>
-                                </div>
-                                </div>
-                            </div>
-                            {/* Modal buttons */}
-                            <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                                <button
-                                onClick={closeInviteModal}
-                                type="button"
-                                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-500 text-white font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
-                                >
-                                Cancel
-                                </button>
-                                <button
-                                onClick={handleAddToTeam}
-                                type="button"
-                                className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-500 text-white font-medium focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm"
-                                >
-                                Accept
-                                </button>
-                            </div>
-                            </div>
-                        </div>
                         </div>
                     )}
                 </main>
