@@ -305,6 +305,7 @@ function Tasks({ user }) {
     if (e.target === e.currentTarget) {
       // Clicked on the backdrop (outside the modal)
       closeTaskModal();
+      closeModal();
     }
   };
 
@@ -337,6 +338,7 @@ function Tasks({ user }) {
                   }}
                   id="team-select"
                 >
+                  <option value="" disabled selected>Please Select Team:</option> {/* Add default option */}
                   {joinedTeams && joinedTeams.length > 0 ? (
                     joinedTeams.map((team) => (
                       <option key={team.id} value={team.id}>
@@ -546,7 +548,7 @@ function Tasks({ user }) {
 
 
         {isModalOpen && (
-          <div id="modal" className="fixed top-0 left-0 w-full h-full bg-opacity-80 bg-gray-900 flex justify-center items-center">
+          <div id="modal" className="fixed top-0 left-0 w-full h-full bg-opacity-80 bg-gray-900 flex justify-center items-center" onClick={handleBackdropClick}>
             <div className="bg-white dark:text-white dark:bg-gray-500 rounded-lg shadow-lg p-12">
               <div className="flex flex-col w-full h-full justify-start items-start">
                 <h1 className="font-semibold">Team: {selectedTeam}</h1>

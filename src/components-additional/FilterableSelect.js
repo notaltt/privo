@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { firestore as db } from "../components/firebase";
-import { collection, getDocs} from 'firebase/firestore';
+import { collection, getDocs } from 'firebase/firestore';
 
-function FilterableSelect({ onTeamChange, selectedTeam }) {
+function FilterableSelect({ onTeamChange }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [options, setOptions] = useState([]);
   const [selectedOption, setSelectedOption] = useState("");
@@ -34,16 +34,8 @@ function FilterableSelect({ onTeamChange, selectedTeam }) {
   }, []);
 
   useEffect(() => {
-    if (options.length > 0) {
-      const filtered = options.filter((option) =>
-        option.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-  
-      const newSelected = filtered.length > 0 ? filtered[0] : "";
-      setSelectedOption(newSelected);
-      onTeamChange(newSelected);
-    }
-  }, [searchTerm, options, onTeamChange]);
+    onTeamChange(selectedOption); // Pass selected company to parent component
+  }, [selectedOption, onTeamChange]);
 
   const filteredOptions = options.filter((option) =>
     option.toLowerCase().includes(searchTerm.toLowerCase())
@@ -66,9 +58,7 @@ function FilterableSelect({ onTeamChange, selectedTeam }) {
         className="block w-full px-4 py-2 border rounded-lg mt-1"
         value={selectedOption}
         onChange={(e) => {
-          console.log("Dropdown value changed:", e.target.value);
           setSelectedOption(e.target.value);
-          onTeamChange(e.target.value);
         }}
       >
         {/* Map over the filteredOptions for rendering the dropdown */}
