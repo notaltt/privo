@@ -5,7 +5,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import AuthDetails from './AuthDetails';
 import { firestore as db } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
-import { collection, getDocs, where, query, doc, updateDoc, getDoc } from "firebase/firestore";
+import { collection, getDocs, where, query, doc, updateDoc, getDoc, setDoc, arrayUnion, arrayRemove } from "firebase/firestore";
 import { auth } from '../../src/components/firebase';
 import { pushNotifications } from './notifications';
 import {ReactComponent as Magnify} from '../images/magnify.svg';
@@ -37,20 +37,14 @@ export default function Dashboard({user}){
     const [selected, setSelected] = useState('');
     const [joinedTeams, setJoinedTeams] = useState();
     const [deleteMenu, setDeleteMenu] = useState(false);
-
+    const [selectedTeam, setSelectedTeam] = useState('');
+    const [announceData, setAnnounceData] = useState([]);
+    const [deleteAnnounce, setDeleteAnnounce] = useState(false);
+    const [selectedAnnounce, setSelectedAnnounce] = useState('');
 
     const toggleSidebar = () => {
       setIsSidebarOpen(!isSidebarOpen);
     }
-
-    const announceData = [
-        {
-            name: 'Jerryvel Cabanero',
-            date: 'Thu Nov 02 2023 14:20:01 GMT+0800 (Philippine Standard Time)',
-            content: 'Files should be posted by today.',
-            team: 'Computer Engineering'
-        }
-    ];
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -59,6 +53,7 @@ export default function Dashboard({user}){
                 if (!hasFetched) {
                     getUser(user);
                     fetchNotifications(user);
+                    fetchAnnouncement(user);
                     fetchTeam(user);
                     setHasFetched(true);
                 }
@@ -162,9 +157,9 @@ export default function Dashboard({user}){
             
                 if (notificationSnapshot.exists()) {
                 const data = notificationSnapshot.data();
-                if (data.notificationData && Array.isArray(data.notificationData)) {
-                    notification.push(...data.notificationData);
-                }
+                    if (data.notificationData && Array.isArray(data.notificationData)) {
+                        notification.push(...data.notificationData);
+                    }
                 }
             }
 
@@ -203,19 +198,95 @@ export default function Dashboard({user}){
         console.error("Error fetching team:", error);
         }
         setJoinedTeams(teams);
+        console.log(joinedTeams);
     };
 
-    const openErrorModal = () => {
-        setisErrorModalOpen(true);
+    // const openErrorModal = () => {
+    //     setisErrorModalOpen(true);
+    // };
+
+    // const closeErrorModal = () => {
+
+    //     setisErrorModalOpen(false);
+    // };
+
+    const addAnnouncement = async () => {
+        const announceRef = doc(db, 'announcement', selectedTeam.trim());
+        const announceData = {
+            name: userName,
+            team: selectedTeam.trim(),
+            message: newAnnouncement,
+            date: new Date().toString()
+        };
+
+        const snapshot = await getDoc(announceRef);
+
+        try{
+           if(snapshot.exists()){
+            await updateDoc(announceRef, {
+                announcement: arrayUnion(announceData)
+            });
+           }else{
+            await setDoc(announceRef, {
+                announcement: arrayUnion(announceData)
+            });
+           }
+        }catch(e){
+            console.log(e);
+        }
+
+        fetchAnnouncement(currentUser);
     };
 
-    const closeErrorModal = () => {
-        setisErrorModalOpen(false);
-    };
+    const fetchAnnouncement = async (user) => {
+        let announcementData = [];
+        try{
+            const userRef = doc(db, 'users', user.uid);
+            const userSnapshot = await getDoc(userRef);
 
-    const addAnnouncement = () => {
-        
-    };
+            if(userSnapshot.exists()){
+                const userData = userSnapshot.data();
+                const userTeams = userData.teams || [];
+
+                for(const team of userTeams){
+                    const announceRef = doc(db, 'announcement', team);
+                    const announceSnapShot = await getDoc(announceRef);
+
+                    if(announceSnapShot.exists()){
+                        const data = announceSnapShot.data();
+                        if(data.announcement && Array.isArray(data.announcement)){
+                            announcementData.push(...data.announcement);
+                        }
+                    }
+                }
+            }
+            announcementData.sort((a, b) => new Date(b.date) - new Date(a.date));
+        }catch(e){
+            console.log(e);
+        }
+        setAnnounceData(announcementData);
+    }
+
+    const deleteAnnouncement = async (data) => {
+        const annRef = doc(db, 'announcement', data.team);
+        const annData = {
+            date: data.date,
+            message: data.message,
+            name: data.name,
+            team: data.team
+        };
+
+        try{
+            await updateDoc(annRef, {
+                announcement: arrayRemove(annData)
+            })
+            setDeleteAnnounce(false);
+            toast.success('Annoucement deleted...');
+            fetchAnnouncement(currentUser);
+        }catch(e){
+            console.log(e);
+        }
+    }
 
     const renamePath = (path) => {
         const segments = path.split('/');
@@ -344,6 +415,7 @@ export default function Dashboard({user}){
 
     function closeDelete(){
         setDeleteMenu(false);
+        setDeleteAnnounce(false);
     }
 
     useEffect(() => {
@@ -361,6 +433,12 @@ export default function Dashboard({user}){
             document.addEventListener('click', click);
         }
     }, [searchDropdown]);
+
+    function openDelete(data){
+        if(userManager){
+            setDeleteAnnounce(true);        
+        }
+    }
     
     return(
         <div className="flex dark:bg-gray-950 bg-white">  
@@ -425,7 +503,7 @@ export default function Dashboard({user}){
                 <main>
                     <div className='flex flex-row'>
                         <div className='w-3/4 p-5'>
-                            <div className='p-5 h-4/6 rounded-xl '>
+                            <div className='p-5 h-1/2 rounded-xl overflow-y'>
                                 <h1 className='text-left text-3xl font-bold dark:text-white text-gray-700'>Announcements</h1>
                                 {userManager && (
                                     <div className="mb-4 flex gap-3">
@@ -436,6 +514,16 @@ export default function Dashboard({user}){
                                         placeholder="Add a new announcement"
                                         className="w-full p-2 border border-gray-200 rounded"
                                     />
+                                    <select value={selectedTeam} onChange={(e) => setSelectedTeam(e.target.value)}>
+                                        <option value="" disabled hidden>
+                                            Select a Team
+                                        </option>
+                                        {joinedTeams && joinedTeams.map((team) => (
+                                            <option key={team.id} value={team.teamName}>
+                                                {team.teamName}
+                                            </option>
+                                        ))}
+                                    </select>
                                     <button
                                         onClick={addAnnouncement}
                                         className="p-2 bg-blue-500 text-white rounded hover:bg-blue-600"
@@ -444,19 +532,25 @@ export default function Dashboard({user}){
                                     </button>
                                     </div>
                                 )}
-                                {announceData.map((data, index) => (
-                                    <div key={index} className="flex p-4 border border-gray-200 rounded mb-4">
-                                        <div className="flex-1">
-                                            <div className="mb-2 flex items-center justify-between">
-                                                <span className="font-semibold">{data.name}</span>
-                                                <p className="ml-2">{data.content} | {data.team}</p>
-                                            <div className="text-gray-500 text-sm">
-                                                {calculateTimePassed(data.date)} 
+                                {announceData.length > 0 ? (
+                                    <div className="announcement-container h-full overflow-y-auto">
+                                        {announceData.map((data, index) => (
+                                            <div key={index} className={`flex p-4 border border-gray-200 rounded mb-4 ${userManager ? 'hover:bg-slate-100 cursor-pointer' : ''}`} onClick={() => {openDelete(); setSelectedAnnounce(data)}}>
+                                                <div className="flex-1" >
+                                                    <div className="mb-2 flex items-center justify-between">
+                                                        <span className="font-semibold">{data.name}</span>
+                                                        <p className="ml-2">{data.message} | {data.team}</p>
+                                                        <div className="text-gray-500 text-sm">
+                                                            {calculateTimePassed(data.date)} 
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            </div>
-                                        </div>
+                                        ))}
                                     </div>
-                                ))}
+                                ):(
+                                    <div>No announcements</div>
+                                )}
                             </div>
                             <div className='p-5 bg-slate-50 h-1/3 rounded-xl'>
                                 <div style={{ maxHeight: '100%', overflowY: 'auto' }}>
@@ -478,6 +572,16 @@ export default function Dashboard({user}){
                                 </div>
                             </div>
                         </div>
+
+                        {deleteAnnounce && selectedAnnounce && (
+                            <div className='fixed top-0 left-0 w-full h-full flex items-center justify-center z-50 drop-shadow-lg bg-black bg-opacity-50'>
+                            <div className='bg-white dark:bg-gray-900 rounded-lg p-4 shadow-md'>
+                                <h2 className='text-lg font-semibold mb-4'>Are you sure you want to delete this announcement?</h2>
+                                <button className='bg-red-500 text-white py-2 px-4 rounded mr-2 hover:bg-blue-600' onClick={() => deleteAnnouncement(selectedAnnounce)}>Yes</button>
+                                <button className='bg-gray-300 text-gray-700 py-2 px-4 rounded hover-bg-gray-400' onClick={() => closeDelete()}>Cancel</button>
+                            </div>
+                        </div>
+                        )}
 
                         {deleteMenu && selected && (
                         <div className='fixed top-0 left-0 w-full h-full flex items-center justify-center z-50 drop-shadow-lg bg-black bg-opacity-50'>
