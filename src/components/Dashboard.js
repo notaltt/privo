@@ -502,8 +502,8 @@ export default function Dashboard({user}){
                 </header>
                 <main>
                     <div className='flex flex-row'>
-                        <div className='w-3/4 p-5'>
-                            <div className='p-5 h-1/2 rounded-xl overflow-y'>
+                        <div className='w-3/4 h-screen grid grid-rows-2 p-5'>
+                            <div className='p-5 h-3/4 rounded-xl' id='announcement'>
                                 <h1 className='text-left text-3xl font-bold dark:text-white text-gray-700'>Announcements</h1>
                                 {userManager && (
                                     <div className="mb-4 flex gap-3">
@@ -533,7 +533,7 @@ export default function Dashboard({user}){
                                     </div>
                                 )}
                                 {announceData.length > 0 ? (
-                                    <div className="announcement-container h-full overflow-y-auto">
+                                    <div className="announceScroll h-full overflow-y-auto">
                                         {announceData.map((data, index) => (
                                             <div key={index} className={`flex p-4 border border-gray-200 rounded mb-4 ${userManager ? 'hover:bg-slate-100 cursor-pointer' : ''}`} onClick={() => {openDelete(); setSelectedAnnounce(data)}}>
                                                 <div className="flex-1" >
@@ -552,8 +552,8 @@ export default function Dashboard({user}){
                                     <div>No announcements</div>
                                 )}
                             </div>
-                            <div className='p-5 bg-slate-50 h-1/3 rounded-xl'>
-                                <div style={{ maxHeight: '100%', overflowY: 'auto' }}>
+                            <div className='p-5 max-h-1/2 bg-slate-50 rounded-xl' id='tasks'>
+                                <div>
                                     {tasks.length > 0 ? (
                                     <ul className="divide-y divide-gray-300">
                                         {tasks.map((task) => (
@@ -634,6 +634,5 @@ export default function Dashboard({user}){
                 </main>
             </div>
         </div>
-       
     );
 }
