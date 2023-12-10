@@ -20,6 +20,7 @@ import { ReactComponent as ArrowIcon } from '../images/arrow.svg';
 import { deleteFromFirestore } from './fileData';
 import FileUpload from './FileUpload';
 import { Toaster, toast } from 'sonner'
+import DocViewer, {DocViewerRenderers} from "@cyntler/react-doc-viewer";
 
 const FileList = ({ company, team }) => {
   const [listFile, setListFile] = useState([]);
@@ -768,10 +769,11 @@ const FileList = ({ company, team }) => {
       file && file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || file.type == "application/vnd.oasis.opendocument.text" ? 
       <div>
         <h1>{file.name}</h1>
-        Unable to preview, file downloaded automatically to view.
-        {window.open(url, '_blank')}
+        Doc
+        <DocViewer documents={[{uri:{url}, fileType: "docx"}]} pluginRenderers={DocViewerRenderers}/>
+        {/* {window.open(url, '_blank')} */}
 
-      </div> 
+      </div>  
       : 
       <div>
         {/*  */}
@@ -779,7 +781,20 @@ const FileList = ({ company, team }) => {
 
     }
     {
-      file && file.type == "video/webm" ? 
+      file && file.type == "text/plain" || file.type == "text/html"? 
+      <div>
+        <h1>{file.name}</h1>
+        <iframe title={file.name} src={url} width='100%' height='500px' />
+        
+      </div>  
+      : 
+      <div>
+        {/*  */}
+      </div>
+
+    }
+    {
+      file && file.type == "video/webm" || file.type == "video/mp4"? 
       <div>
         <h1>{file.name}</h1>
         <video src={url} controls />
@@ -792,7 +807,7 @@ const FileList = ({ company, team }) => {
 
     }
     {
-      file && file.type == "audio/wav" ? 
+      file && file.type == "audio/wav" || file.type == "audio/mpeg" ? 
       <div>
         <h1>{file.name}</h1>
         <video src={url} controls />
@@ -808,8 +823,10 @@ const FileList = ({ company, team }) => {
       file && file.type == "application/docx" || file.type == "application/msword" || file.type == "application/odt" ? 
       <div>
         <h1>{file.name}</h1>
-        Unable to preview, file downloaded automatically to view.
-        {window.open(url, '_blank')}
+        Docx
+        <DocViewer documents={[{uri:{url}, fileType: "docx"}]} pluginRenderers={DocViewerRenderers}/>
+        
+        {/* {window.open(url, '_blank')} */}
 
       </div> 
       : 
@@ -823,7 +840,7 @@ const FileList = ({ company, team }) => {
       <div>
         <h1>{file.name}</h1>
         Unable to preview, file downloaded automatically to view.
-        {window.open(url, '_blank')}
+        {/* {window.open(url, '_blank')} */}
 
       </div> 
       : 
