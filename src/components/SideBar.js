@@ -67,7 +67,7 @@ const SideBar = ({ isOpen, toggleSidebar }) => {
       };
 
       return (
-        <aside className={`z-50 text-black dark:text-white sm:sticky w-screen h-screen absolute bg-sky-200 sm:w-64 sm:h-auto dark:bg-gray-900 md:block flex-shrink-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out`}>
+        <aside className={`z-50 text-black dark:text-white sm:sticky w-screen h-screen absolute bg-sky-200 sm:w-64 sm:h-auto dark:bg-slate-900 md:block flex-shrink-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out`}>
           <div className="py-4">
             <div className="flex">
               <a className='ml-4 ' href="dashboard">

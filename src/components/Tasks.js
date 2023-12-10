@@ -318,16 +318,16 @@ function Tasks({ user }) {
 
 
   return(
-    <div className="flex bg-no-repeat bg-right-bottom dark:bg-gray-950 h-screen overflow-hidden': isSideMenuOpen }" style={{ backgroundImage: `url(${myImage})` }}>   
+    <div className="flex dark:text-white  bg-no-repeat bg-right-bottom dark:bg-gray-950 h-screen overflow-hidden': isSideMenuOpen }" style={{ backgroundImage: `url(${myImage})` }}>   
     <Toaster richColors expand={false} position="bottom-center"/>        
     <SideBar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar}/>
     <div className='flex flex-col flex-1 w-full"'> 
-      <header className='justify-content z-10 mt-5 bg-white shadow-md dark:bg-gray-950'>
+      <header className='justify-content z-10 pt-4 bg-white shadow-md dark:bg-gray-900'>
         <div className="flex md:justify-center flex-1 lg:mr-32">
-              <div className=" relative w-40 justify-center md:w-full max-w-xl mr-6 focus-within:text-purple-500">
-              <div>
+              <div className=" relative  w-40 justify-center md:w-full max-w-xl mr-6 focus-within:text-purple-500">
+              <div className=''>
                 <select
-                  className="w-full pl-8 pr-2 text-large dark:text-black ..."
+                  className="w-full hover:dark:bg-gray-100 pl-8 pr-2 text-large dark:text-black ..."
                   aria-label="Choose Team"
                   value={selectedTeam}
                   onChange={(e) => {
@@ -384,7 +384,7 @@ function Tasks({ user }) {
               <p>No tasks added yet.</p>
             )}
           </div> */}
-        <div className="mt-10 flex flex-nowrap sm:divide-x-2 w-full justify-center h-screen ">
+        <div className="mt-10 flex flex-nowrap sm:divide-x-2 w-full justify-center  ">
           <div className="flex-none w-1/3 px-5 overflow-hidden">
             <div className="flex justify-between items-center">
               <h1 className="select-none font-semibold">
@@ -392,13 +392,13 @@ function Tasks({ user }) {
               </h1>
               <div className="flex gap-10 items-center ">
                 <GrFormPrevious
-                  className="w-5 h-5 cursor-pointer hover:scale-105 transition-all"
+                  className="w-5 h-5  dark:bg-gray-900 cursor-pointer hover:scale-105 transition-all"
                   onClick={() => {
                     setToday(today.month(today.month() - 1));
                   }}
                 />
                 <h1
-                  className=" cursor-pointer hover:scale-105 transition-all"
+                  className=" cursor-pointer  hover:scale-105 transition-all"
                   onClick={() => {
                     setToday(currentDate);
                   }}
@@ -406,19 +406,19 @@ function Tasks({ user }) {
                   Today
                 </h1>
                 <GrFormNext
-                  className="w-5 h-5 cursor-pointer hover:scale-105 transition-all"
+                  className="w-5 h-5 dark:bg-gray-900 cursor-pointer hover:scale-105 transition-all"
                   onClick={() => {
                     setToday(today.month(today.month() + 1));
                   }}
                 />
               </div>
             </div>
-            <div className="grid grid-cols-7 ">
+            <div className="grid dark:text-white grid-cols-7 ">
               {days.map((day, index) => {
                 return (
                   <h1
                     key={index}
-                    className="text-sm text-center h-14 w-14 grid place-content-center text-gray-500 select-none"
+                    className="text-sm text-center  h-14 w-14 grid place-content-center text-gray-500 select-none"
                   >
                     {day}
                   </h1>
@@ -426,7 +426,7 @@ function Tasks({ user }) {
               })}
             </div>
 
-            <div className=" grid grid-cols-7">
+            <div className=" grid dark:text-white grid-cols-7">
               {generateDate(today.month(), today.year()).map(({ date, currentMonth, today }, index) => {
                 const dateHasTasks = hasTasksForDate(date);
                 
@@ -437,13 +437,13 @@ function Tasks({ user }) {
                   >
                     <h1
                       className={cn(
-                        "h-10 w-10 rounded-full grid place-content-center hover:bg-black hover:text-white transition-all cursor-pointer select-none",
+                        "h-10 w-10 rounded-full grid place-content-center hover:dark:bg-gray-100  hover:dark:text-black hover:bg-black hover:text-white transition-all cursor-pointer select-none",
                         currentMonth ? "" : "text-gray-400",
                         selectDate.toDate().toDateString() === date.toDate().toDateString()
                           ? "bg-black text-white" // Selected date
                           : dateHasTasks ? "bg-gray-300" : "", // Other dates with tasks
                         today && selectDate.toDate().toDateString() !== date.toDate().toDateString()
-                          ? "bg-blue-600 text-white" // Today's date, not selected
+                          ? "bg-blue-600 dark:bg-purple-600 text-white" // Today's date, not selected
                           : ""
                       )}
                       onClick={() => {
@@ -457,7 +457,7 @@ function Tasks({ user }) {
               })}
             </div>
           </div>
-          <div className="flex-none w-2/3 px-5 overflow-hidden">
+          <div className="flex-none w-2/3 px-5  overflow-hidden">
             <h1 className="font-semibold">Tasks for {selectDate.toDate().toDateString()}</h1>
             <div className="flex flex-wrap justify-center gap-4 mt-5">
               {tasksForSelectedDate.length > 0 ? (

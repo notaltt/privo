@@ -448,7 +448,7 @@ export default function Dashboard({user}){
             
             <div className='flex flex-col flex-1 w-1/2'>
            
-                <header className='justify-content z-10 mt-5 bg-white shadow-md dark:bg-gray-950'>
+                <header className='justify-content z-10 pt-4 bg-white shadow-md dark:bg-gray-900'>
                 
                     <div className="flex md:justify-center flex-1 lg:mr-32">
                         <div>
@@ -503,7 +503,7 @@ export default function Dashboard({user}){
                 <main>
                     <div className='flex flex-row'>
                         <div className='w-3/4 h-screen grid grid-rows-2 p-5'>
-                            <div className='p-5 h-3/4 rounded-xl' id='announcement'>
+                            <div className='p-5 h-3/4 rounded-xl bg-gray-100 dark:text-white dark:bg-gray-900' id='announcement'>
                                 <h1 className='text-left text-3xl font-bold dark:text-white text-gray-700'>Announcements</h1>
                                 {userManager && (
                                     <div className="mb-4 flex gap-3">
@@ -533,7 +533,7 @@ export default function Dashboard({user}){
                                     </div>
                                 )}
                                 {announceData.length > 0 ? (
-                                    <div className="announceScroll h-full overflow-y-auto">
+                                    <div className="announceScroll h-screen overflow-y-auto">
                                         {announceData.map((data, index) => (
                                             <div key={index} className={`flex p-4 border border-gray-200 rounded mb-4 ${userManager ? 'hover:bg-slate-100 cursor-pointer' : ''}`} onClick={() => {openDelete(); setSelectedAnnounce(data)}}>
                                                 <div className="flex-1" >
@@ -552,8 +552,8 @@ export default function Dashboard({user}){
                                     <div>No announcements</div>
                                 )}
                             </div>
-                            <div className='p-5 max-h-1/2 bg-slate-50 rounded-xl' id='tasks'>
-                                <div>
+                            <div className='p-5 max-h-1/2 bg-slate-50 rounded-xl dark:text-white dark:bg-gray-900' id='tasks'>
+                                <div className='dark:text-white'>
                                     {tasks.length > 0 ? (
                                     <ul className="divide-y divide-gray-300">
                                         {tasks.map((task) => (
@@ -567,7 +567,7 @@ export default function Dashboard({user}){
                                         ))}
                                     </ul>
                                     ) : (
-                                    <p className="text-gray-600">No tasks assigned to you.</p>
+                                    <p className="text-gray-600 dark:text-white">No tasks assigned to you.</p>
                                     )}
                                 </div>
                             </div>
@@ -584,7 +584,7 @@ export default function Dashboard({user}){
                         )}
 
                         {deleteMenu && selected && (
-                        <div className='fixed top-0 left-0 w-full h-full flex items-center justify-center z-50 drop-shadow-lg bg-black bg-opacity-50'>
+                        <div className='fixed top-0 left-0 dark:text-white dark:bg-gray-900 w-full h-full flex items-center justify-center z-50 drop-shadow-lg bg-black bg-opacity-50'>
                             <div className='bg-white dark:bg-gray-900 rounded-lg p-4 shadow-md'>
                                 <h2 className='text-lg font-semibold mb-4'>Are you sure you want to delete {selected.fileName}?</h2>
                                 <button className='bg-red-500 text-white py-2 px-4 rounded mr-2 hover:bg-blue-600' onClick={() => deleteFile(selected.fileName)}>Yes</button>
@@ -594,14 +594,14 @@ export default function Dashboard({user}){
                         )}
 
                         {loading ? (
-                            <div className='h-screen w-1/4 overflow-y-auto bg-gray-100'>
+                            <div className='h-screen dark:text-white dark:bg-gray-900 w-1/4 overflow-y-auto bg-gray-100'>
                                 <ul className="divide-y dark:divide-gray-100 divide-gray-100 px-6 dark:bg-gray-800 bg-gray-100">
                                     <h2 className="text-3xl font-bold dark:text-white text-gray-700 py-8 sm:py-12 lg:py-8">Loading notifications...</h2>
                                 </ul>
                             </div>
                         ) : (
                             userNotification.length > 0 ? (
-                                <div className='h-screen w-1/4 overflow-y-auto'>
+                                <div className='h-full w-1/4 overflow-y-auto'>
                                     <ul className="divide-y dark:divide-gray-100 divide-gray-100 px-6 dark:bg-gray-800 bg-gray-100">
                                         <h2 className="text-3xl font-bold dark:text-white text-gray-700 py-8 sm:py-12 lg:py-8 border-b-2 border-gray-500">Notifications</h2>
                                         {userNotification.map((person) => (
@@ -622,7 +622,7 @@ export default function Dashboard({user}){
                                     </ul>
                                 </div>
                             ) : (
-                                <div className='h-screen w-1/4 overflow-y-auto bg-gray-100'>
+                                <div className='h-screen dark:text-white dark:bg-gray-900 w-1/4 overflow-y-auto bg-gray-100'>
                                     <ul className="divide-y dark:divide-gray-100 divide-gray-100 px-6 dark:bg-gray-800 bg-gray-100">
                                         <h2 className="text-3xl font-bold dark:text-white text-gray-700 py-8 sm:py-12 lg:py-8">No notifications available.</h2>
                                     </ul>

@@ -72,7 +72,7 @@ const UpdateProfileForm = () => {
                 value={name}
                 placeholder="Name"
                 onChange={(e) => setDisplayName(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-400"
+                className="w-full p-3 border border-gray-300 rounded-lg  dark:bg-gray-400 focus:ring focus:ring-indigo-400"
               />
             </div>
             <div>
@@ -83,7 +83,7 @@ const UpdateProfileForm = () => {
                 value={username}
                 placeholder="Username"
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-400"
+                className="w-full p-3 border dark:bg-gray-400  border-gray-300 rounded-lg focus:ring focus:ring-indigo-400"
               />
             </div>
             <div>
@@ -94,7 +94,7 @@ const UpdateProfileForm = () => {
                 value={phone}
                 placeholder="Phone Number"
                 onChange={(e) => setPhone(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring focus:ring-indigo-400"
+                className="w-full p-3 border border-gray-300  dark:bg-gray-400 rounded-lg focus:ring focus:ring-indigo-400"
               />
             </div>
             <button
