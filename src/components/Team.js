@@ -31,7 +31,6 @@ export default function Team() {
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (user) {
         setCurrentUser(user);
-        console.log(`user:${'\t'.repeat(3)}` + user.uid);
       } else {
         setCurrentUser(null);
       }
@@ -62,15 +61,22 @@ export default function Team() {
   }, [currentUser]);
 
   useEffect(() => {
-    if(currentUser)
-      if(currentUserData.role === "manager"){
-        checkInvites();
-        fetchUsers();
-        fetchTeams();
+    const fetchData = async () => {
+      try {
+        if (currentUserData && currentUserData.role === 'manager') {
+          await checkInvites();
+          await fetchUsers();
+          await fetchTeams();
+        } else {
+          console.log('User is not a manager');
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
       }
-      else
-        console.log('User is not manager');
-
+    };
+  
+    fetchData();
+  
     return () => {};
   }, [currentUserData]);
   
@@ -119,11 +125,8 @@ export default function Team() {
     if (teams) {
       teams.forEach((element) => {
         setSelectedId(id);
-        if (element.id === id) {
-          element.members.map((member) => {
-            members.push(member);
-          });
-        }
+        if (element.id === id)
+          members.push(...element.members);
       });
       setMember(members);
     }
@@ -151,7 +154,7 @@ export default function Team() {
       console.error("Error fetching team:", error);
     }
     setUsers(users);
-    console.log(users);
+    console.log("my users:", users);
   };
 
   const fetchTeams = async () => {
@@ -180,7 +183,7 @@ export default function Team() {
       console.error("Error fetching team:", error);
     }
     setTeams(teamsFetched);
-    console.log("my teams: ", teamsFetched);
+    console.log("my teams:", teamsFetched);
   };
 
   const handleUserChanges = (event) => {
@@ -318,12 +321,16 @@ export default function Team() {
               ></input>
             </div>
             <DarkMode />
-
             <Profile />
           </div>
         </header>
         <main className='dark:bg-gray-900 dark:text-white text-black h-full'>
-          {showTeam ? (
+          
+          {!currentUserData ?
+          <><p className='text-5xl font-bold dark:text-white text-gray-700 opacity-100 m-10'>Loading...</p></> :
+          currentUserData.role !== "manager" ?
+          <><p className='text-5xl font-bold dark:text-white text-gray-700 opacity-100 m-10'>You are not a manager.</p></> :
+          showTeam ? (
           <div className='bg-gray-100 dark:bg-gray-800 h-full px-4'>
             <h2 className='text-5xl font-bold dark:text-white text-gray-700 opacity-100 m-10'>
               <p className=" text-blue-500">Teams for Company:</p>
