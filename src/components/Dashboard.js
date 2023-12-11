@@ -13,6 +13,7 @@ import { Toaster, toast } from 'sonner'
 import { ref, getDownloadURL, getMetadata, uploadString, deleteObject} from "firebase/storage";
 import storage from './firebase';
 import { deleteFromFirestore } from './fileData';
+import userLogo from '../images/user.svg';
 
 export default function Dashboard({user}){
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -168,6 +169,7 @@ export default function Dashboard({user}){
         } catch(e){
             console.log(e)
         }
+        console.log('user notifications:', notification);
         setUserNotification(notification);
         setLoading(false);
     };
@@ -198,17 +200,8 @@ export default function Dashboard({user}){
         console.error("Error fetching team:", error);
         }
         setJoinedTeams(teams);
-        console.log(joinedTeams);
+          console.log('teams: ', teams);
     };
-
-    // const openErrorModal = () => {
-    //     setisErrorModalOpen(true);
-    // };
-
-    // const closeErrorModal = () => {
-
-    //     setisErrorModalOpen(false);
-    // };
 
     const addAnnouncement = async () => {
         const announceRef = doc(db, 'announcement', selectedTeam.trim());
@@ -453,8 +446,8 @@ export default function Dashboard({user}){
                     <div className="flex md:justify-center flex-1 lg:mr-32">
                         <div>
                             <button className="mr-10 ml-3 rounded-lg bg-blue-200 md:hidden block dark:bg-gray-900 dark:text-white text-black p-2" onClick={toggleSidebar}>
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-6 h-6">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                                 </svg>
                             </button>
                         </div>
@@ -607,7 +600,7 @@ export default function Dashboard({user}){
                                         {userNotification.map((person) => (
                                             <li key={person.id} className="flex justify-between gap-x-6 py-5 pe-6">
                                                 <div className="flex min-w-0 bggap-x-4">
-                                                    <img className="h-12 w-12 flex-none rounded-full bg-gray-50 me-4" src={person.avatar} alt="" />
+                                                    <img className="h-12 w-12 flex-none rounded-full bg-gray-50 me-4" src={person.avatar==="null" ? userLogo:person.avatar} alt="" />
                                                     <div className="min-w-0">
                                                         <p className="text-sm text-start dark:text-white font-semibold leading-6 text-gray-900">{person.name}</p>
                                                         <p className="mt-1 truncate text-xs leading-5 dark:text-white text-gray-500">{person.content} | {person.team}</p>
