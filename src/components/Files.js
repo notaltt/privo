@@ -321,7 +321,7 @@ export default function Files(){
            <Toaster richColors expand={false} position="bottom-center"/>
 
             <div className='class="flex flex-col flex-1 w-full"'>
-            <header className='justify-content z-10 mt-5 bg-white shadow-md dark:bg-gray-950'>
+            <header className='justify-content z-10 pt-4 bg-white shadow-md dark:bg-gray-900'>
                 
                 <div className="flex md:justify-center flex-1 lg:mr-32">
                     <div>
@@ -434,8 +434,8 @@ export default function Files(){
                             <FileList company={userCompany} team={teamName} />
                         </div>
                     ) : (
-                        <div className="my-4 p-2 border rounded-lg bg-white mx-auto inline-block">
-                            <div className='bg-slate-50 p-2 rounded-lg'>
+                        <div className="my-4 p-2 border rounded-lg dark:text-white dark:bg-gray-900 bg-white mx-auto inline-block">
+                            <div className='bg-slate-50 dark:text-white dark:bg-gray-900 p-2 rounded-lg'>
                                 <div className="text-xl mx-5">CLICK AVAILABLE TEAMS</div>
                                 <div className="flex items-center">
                                     <div className="flex-1 border-t border-gray-300"></div>
