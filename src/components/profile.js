@@ -3,13 +3,20 @@ import AvatarUpload from './AvatarUpload';
 import { UserAuth } from '../context/AuthContext';
 import { updateUserDataByUid, getUserDataByUid } from './userDataUtils';
 import DarkMode from './DarkMode';
+import SideBar from './SideBar';
+import myImage from '../images/logoOpacity.png';
 
 const UpdateProfileForm = () => {
   const { user } = UserAuth();
   const [name, setDisplayName] = useState('');
   const [phone, setPhone] = useState('');
   const [username, setUsername] = useState('');  
-    
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
+  }
+
   useEffect(() => {
     if (user) {
       setDisplayName(user.name); // Use user.name if available, otherwise use an empty string
@@ -41,7 +48,7 @@ const UpdateProfileForm = () => {
   };
 
   return (
-    <div className='bg-gray-100 top-0 dark:text-white dark:bg-gray-900 h-screen'>
+    <div className="flex bg-no-repeat bg-right-bottom dark:bg-gray-950 h-screen" style={{ backgroundImage: `url(${myImage})` }}> 
 
             <header className='overflow-y-hidden dark:text-white justify-content  py-8 bg-white shadow-md dark:bg-gray-950'>
                   <div className='absolute mt-5 right-5 top-0'>
@@ -54,9 +61,9 @@ const UpdateProfileForm = () => {
                   </div>
             </header>
 
+        <SideBar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
       
-      
-        <div className="flex justify-between items-center dark:bg-gray-900 rounded bg-gray-100 pt-14">
+        <div className="flex justify-between items-center w-full dark:bg-gray-900 rounded bg-gray-100 pt-14">
               
         <div className="mx-auto max-w-md p-6 dark:text-white dark:bg-gray-950  bg-white  rounded-lg shadow-lg">
           <div className="mb-4 text-center">
