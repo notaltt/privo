@@ -43,6 +43,9 @@ export default function Files(){
     const searchComponent = useRef(null);
     const dropdownComponent = useRef(null);
 
+    useEffect(() => {
+        console.log('Selected Team changed:', teamName[0]);
+    }, [teamName]);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -108,6 +111,43 @@ export default function Files(){
         } catch (error) {
             console.error('Error fetching invite:', error);
         }
+    };
+
+    const handleLeaveTeam = async () => {      
+        const currentLoggedEmail = auth.currentUser.email;
+        const teamInvitation = teamName[0];
+      
+        try {
+          const teamCollection = collection(db, 'team');
+          const teamDoc = doc(teamCollection, teamInvitation);
+      
+          const userCollection = collection(db, 'users');
+          const userQuery = query(userCollection, where('email', '==', currentLoggedEmail));
+          const userSnapshot = await getDocs(userQuery);
+      
+          const currentTeams = userSnapshot.docs[0].data().teams || [];
+          
+          const docSnapshot = await getDoc(teamDoc);
+          const currentMembers = docSnapshot.data().members || [];
+      
+          // Remove the team from the user's teams
+          const updatedTeams = currentTeams.filter(team => team !== teamInvitation);
+          const userDoc = doc(userCollection, userSnapshot.docs[0].id);
+          await updateDoc(userDoc, { teams: updatedTeams });
+      
+          // Remove the user from the team's members
+          const updatedMembers = currentMembers.filter(member => member !== currentLoggedEmail);
+          await updateDoc(teamDoc, { members: updatedMembers });
+      
+          navigateToFiles();
+          
+        } catch (error) {
+          console.error('Error leaving team:', error);
+        }
+    };
+
+    const navigateToFiles = () => {
+        window.location.reload();
     };
 
     const openInviteModal = () => {
@@ -432,6 +472,7 @@ export default function Files(){
                     {teamName !== '' ? (
                         <div key={fileListKey}>
                             <FileList company={userCompany} team={teamName} />
+                            <button onClick={handleLeaveTeam} className="m-4 px-4 py-2 bg-blue-500 text-white rounded-md">Leave Team</button>
                         </div>
                     ) : (
                         <div className="my-4 p-2 border rounded-lg dark:text-white dark:bg-gray-900 bg-white mx-auto inline-block">
