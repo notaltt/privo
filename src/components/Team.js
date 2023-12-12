@@ -11,12 +11,13 @@ import FileList from './FileList';
 import { Toaster, toast } from 'sonner'
 import QRCode from 'qrcode.react';
 import teamLogo from '../images/user-group.svg';
+import ChangeTeamPhoto from "./ChangeTeamPhoto";
 
 export default function Team() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [showTeam, setshowTeam] = useState(true);
   const [teams, setTeams] = useState();
-  const [selectedId, setSelectedId] = useState();
+  const [selectedTeam, setSelectedTeam] = useState(null);
   const [member, setMember] = useState();
   const [users, setUsers] = useState();
   const [selectedUser, setSelectedUser] = useState("");
@@ -26,6 +27,7 @@ export default function Team() {
   const [currentUserData, setCurrentUserData] = useState(null);
   const [openMembers, setOpenMembers] = useState(false);
   const [manageMembers, setManageMembers] = useState(false);
+  const [showChangePhoto, setShowChangePhoto] = useState(false);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -63,7 +65,7 @@ export default function Team() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        if (currentUserData && currentUserData.role === 'manager') {
+        if (currentUserData.role === 'manager') {
           await checkInvites();
           await fetchUsers();
           await fetchTeams();
@@ -75,7 +77,8 @@ export default function Team() {
       }
     };
   
-    fetchData();
+    if(currentUserData)
+      fetchData();
   
     return () => {};
   }, [currentUserData]);
@@ -105,6 +108,14 @@ export default function Team() {
     setIsSidebarOpen(!isSidebarOpen);
   };
   
+  const handleChangePhoto = () => {
+    setShowChangePhoto(true);
+  }
+
+  const hideChangePhoto = () => {
+    setShowChangePhoto(false);
+  }
+  
   function seeMembers(){
     setOpenMembers(!openMembers);
   }
@@ -117,20 +128,16 @@ export default function Team() {
     setshowTeam(!showTeam);
   }
   
-  function openTeam(id) {
+  function openTeam(team) {
     setshowTeam(!showTeam);
+    setSelectedTeam(team);
   
     const members = [];
-    
-    if (teams) {
-      teams.forEach((element) => {
-        setSelectedId(id);
-        if (element.id === id)
-          members.push(...element.members);
-      });
-      setMember(members);
-    }
-    console.log(id);
+    members.push(...team.members);
+    setMember(members);
+
+    console.log("team you chose:", team);
+    console.log("team members:", members);
   }
 
   const fetchUsers = async () => {
@@ -193,9 +200,6 @@ export default function Team() {
   const handleInviteUser = async () => {
     console.log('inviting...');
 
-    const teamCollection = collection(db, 'team');
-    const teamDoc = doc(teamCollection, selectedId).id;
-
     const userCollection = collection(db, 'users');
     const userQuery = query(userCollection, where('email', '==', selectedUser));
     const userSnapshot = (await getDocs(userQuery));
@@ -205,7 +209,7 @@ export default function Team() {
     const invitesCollection = collection(db, 'invites');
     const inviteDocRef = await addDoc(invitesCollection, {
         manager: currentUserData.username || '',
-        team: teamDoc,
+        team: selectedTeam.id,
         time: currentTime,
         user: userID,
     });
@@ -226,6 +230,8 @@ export default function Team() {
   }
   
   const handleRemoveUser = async () => {
+    const selectedId = selectedTeam.id;
+
     if (!selectedUser) {
       showErrorModal('Please select a user before removing.');
       return;
@@ -273,6 +279,7 @@ export default function Team() {
   return (
     <div className='flex dark:bg-gray-950 bg-white h-screen'>
       <SideBar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
+      <ChangeTeamPhoto isOpen={showChangePhoto} hide={hideChangePhoto} team={selectedTeam}/>
       <Toaster/>
 
       <div className='flex flex-col flex-1 w-full'>
@@ -325,7 +332,6 @@ export default function Team() {
           </div>
         </header>
         <main className='dark:bg-gray-900 dark:text-white text-black h-full'>
-          
           {!currentUserData ?
           <><p className='text-5xl font-bold dark:text-white text-gray-700 opacity-100 m-10'>Loading...</p></> :
           currentUserData.role !== "manager" ?
@@ -335,19 +341,20 @@ export default function Team() {
             <h2 className='text-5xl font-bold dark:text-white text-gray-700 opacity-100 m-10'>
               <p className=" text-blue-500">Teams for Company:</p>
               <div className="w-3/5 border border-gray-300 mx-auto my-4"></div>
-              <p className='font-normal'>{currentUserData? currentUserData.company : 'loading...'}</p>
+              <p className='font-normal'>{currentUserData?.company ?? 'loading...'}</p>
             </h2>
             <div className='cursor-pointer space-y-12 lg:grid lg:grid-cols-4 lg:gap-x-6 lg:space-y-0'>
               {teams?.map((team) => (
                 <div
                   className='group relative bg-gray-200 p-2 border-2 border-solid border-gray-300'
-                  onClick={() => openTeam(team.id)}
+                  onClick={() => openTeam(team)}
                 >
                   <div className='relative h-70 w-full overflow-hidden rounded-lg dark:text-white bg-white sm:aspect-h-1 sm:aspect-w-2 lg:aspect-h-1 lg:aspect-w-1 group-hover:opacity-75 sm:h-64'>
                     <div>
                       <img
                         src={team.imageUrl || teamLogo}
-                        className='h-auto w-auto object-cover object-center p-5'
+                        className='h-full w-full object-cover object-center p-5'
+                        alt="Team Image"
                       />
                     </div>
                   </div>
@@ -365,7 +372,7 @@ export default function Team() {
           ) : (
           <div className='flex flex-row'>
             <div className='w-3/4 p-5 border-r-4 border-black-100'>
-              <FileList company={currentUserData.company} team={selectedId}/> 
+              <FileList company={currentUserData.company} team={selectedTeam?.id ?? ''} />
               {isErrorModalOpen && (
               <div id="modal" className="fixed top-0 left-0 w-full h-full bg-opacity-80 bg-gray-900 flex justify-center items-center">
                 <div className="bg-white dark:text-white dark:bg-gray-500 rounded-lg shadow-lg p-8">
@@ -382,12 +389,13 @@ export default function Team() {
                 <div className="h-1/4 flex flex-wrap-row justify-center items-center">
                   <button onClick={manageMem} className={`py-1 px-2 rounded m-2 ${manageMembers ? 'bg-white border border-blue-500 text-blue-500 ' : 'bg-sky-300 text-white '}`}>Manage Members</button>
                   <button  onClick={seeMembers} className={`py-1 px-2 rounded m-2 ${openMembers ? 'bg-white border border-blue-500 text-blue-500 ' : 'bg-sky-300 text-white'}`}>View Members</button>
+                  <button  onClick={handleChangePhoto} className={'py-1 px-2 rounded m-2 bg-sky-300 text-white'}>Change Photo</button>
                 </div>
                 {manageMembers && (
                 <>
                   <label for='users' className="p-4 m-4">Choose user:</label>
                   <div>
-                    <select name='users' id='users' onChange={handleUserChanges} classNam="w-screen">
+                    <select name='users' id='users' onChange={handleUserChanges} className="w-full">
                       <option value=''>Select a user</option>{" "}
                       {users.map((user) => (
                         <option key={user.email} value={user.email}>

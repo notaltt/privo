@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { initializeApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { doc, updateDoc, getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import {getAuth, onAuthStateChanged,updateProfile} from "firebase/auth"
 import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
@@ -59,6 +59,33 @@ export async function upload(file, currentUser, setLoading) {
   setLoading(false);
   alert("Uploaded file!");
 }
+export async function uploadTeam(file, team, setPhotoURL, setLoading) {
+  if (!team || !team.id) {
+    console.error('Team or team ID is missing.');
+    return;
+  }
+
+  const fileRef = ref(storage, `teams/${team.id}/teamPhoto.png`);
+
+  setLoading(true);
+
+  try {
+    await uploadBytes(fileRef, file);
+    const photoURL = await getDownloadURL(fileRef);
+    
+    // Assuming there is a field like 'teamPhotoURL' in the team document
+    await updateDoc(doc(firestore, 'team', team.id), { imageUrl: photoURL });
+
+    setPhotoURL(photoURL);
+    alert('Uploaded file!');
+  } catch (error) {
+    console.error('Error uploading file:', error);
+    alert('Error uploading file.');
+  } finally {
+    setLoading(false);
+  }
+}
+
 export const auth = getAuth(app);
 export {createUser, readUser, updateUser, deleteData};
 export default storage;
