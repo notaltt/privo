@@ -12,6 +12,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from '../../src/components/firebase';
 import { Toaster, toast } from 'sonner'
 import myImage from '../images/logoOpacity.png';
+import { getStorage, getDownloadURL, ref } from 'firebase/storage';
 
 function Tasks({ user }) {
   const days = ["S", "M", "T", "W", "T", "F", "S"];
@@ -28,7 +29,6 @@ function Tasks({ user }) {
   const [selectedTeam, setSelectedTeam] = useState('');
   const [isManager, setIsManager] = useState(false);
   const [userName, setUserName] = useState('');
-  const [userAvatar, setUserAvatar] = useState('');
   const [userRole, setUserRole] = useState('');
   const [users, setUsers] = useState([]);
   const [showConfirmation, setShowConfirmation] = useState(false);
@@ -40,6 +40,8 @@ function Tasks({ user }) {
   const [tasks, setTasks] = useState([]);
   const [tasksForSelectedDate, setTasksForSelectedDate] = useState([]);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [lastUpdate, setLastUpdate] = useState(Date.now());
+  const storage = getStorage();
 
   const handleUserChange = (event) => {
     setSelectedUserEmail(event.target.value);
@@ -55,27 +57,57 @@ function Tasks({ user }) {
       const q = query(collection(db, 'tasks'), where('team', '==', teamId));
       const snapshot = await getDocs(q);
   
-      const fetchedTasks = snapshot.docs.map(doc => {
-        const createdAtTimestamp = doc.data().createdAt; // Firestore Timestamp
-        const formattedDate = createdAtTimestamp.toDate().toISOString().split('T')[0]; // Convert Firestore Timestamp to string "YYYY-MM-DD"
+      const userUids = new Map();
+      const userQuerySnapshot = await getDocs(collection(db, 'users'));
+      userQuerySnapshot.forEach((userDoc) => {
+        userUids.set(userDoc.data().email, userDoc.id);
+      });
   
+      // Then, fetch the tasks and their assigned user's profile picture URLs
+      const tasksWithProfilePicsPromises = snapshot.docs.map(async (doc) => {
+        const taskData = doc.data();
+        const assignedUserEmail = taskData.assignedUser;
+        const userUid = userUids.get(assignedUserEmail); // Get the UID from the map
+        let profilePicUrl = '';
+  
+        if (userUid) {
+          try {
+            // Attempt to fetch the profile picture URL
+            const profilePicRef = ref(storage, `${userUid}.png`);
+            profilePicUrl = await getDownloadURL(profilePicRef);
+          } catch (error) {
+            // If there's any error (e.g., file not found), use a placeholder image
+            console.error(`Error fetching profile picture for UID ${userUid}:`, error);
+            profilePicUrl = 'https://via.placeholder.com/150';
+          }
+        } else {
+          console.error(`No UID found for assigned user with email ${assignedUserEmail}`);
+          profilePicUrl = 'https://via.placeholder.com/150';
+        }
+  
+        console.log(profilePicUrl);
         return {
           id: doc.id,
-          taskName: doc.data().taskName,
-          assignedUser: doc.data().assignedUser,
-          date: doc.data().deadline,
-          dateAdded: doc.data().createdAt,
-          description: doc.data().description
+          taskName: taskData.taskName,
+          assignedUser: assignedUserEmail,
+          date: taskData.deadline,
+          dateAdded: taskData.createdAt,
+          description: taskData.description,
+          profilePicUrl: profilePicUrl,
         };
       });
   
-      setTasks(fetchedTasks);
+      // Wait for all the profile picture URLs to be fetched
+      const tasksWithProfilePics = await Promise.all(tasksWithProfilePicsPromises);
+  
+      setTasks(tasksWithProfilePics);
     } catch (error) {
-      console.error("Error fetching tasks:", error);
+      console.error("Error fetching tasks with profile pictures:", error);
     } finally {
       setIsLoading(false);
     }
   };
+  
   
   
   useEffect(() => {
@@ -84,7 +116,8 @@ function Tasks({ user }) {
     } else {
       setTasks([]); // Clear tasks if no team is selected
     }
-  }, [selectedTeam]);
+  }, [selectedTeam, lastUpdate]); // Add lastUpdate as a dependency
+  
 
   const filterTasksBySelectedDate = (selectedDate) => {
     const formattedDate = selectedDate.format('YYYY-MM-DD');
@@ -132,13 +165,12 @@ function Tasks({ user }) {
   
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        const userAvatar = userData.avatar;
         const userName = userData.name;
         const userRole = userData.role;
   
         setUserName(userName);
-        setUserAvatar(userAvatar);
         setUserRole(userRole);
+
       }
     } catch (e) {
       console.error("Error fetching user data:", e);
@@ -195,7 +227,7 @@ function Tasks({ user }) {
     console.error("Error fetching team:", error);
     }
     setJoinedTeams(teams);
-};
+  };
 
   
  
@@ -215,7 +247,7 @@ function Tasks({ user }) {
         const users = companySnapshot.docs
           .map((doc) => doc.data())
           .filter((user) => user.teams && user.teams.includes(selectedTeam));
-  
+ 
         setUsers(users);
         console.log(users);
       }
@@ -226,7 +258,6 @@ function Tasks({ user }) {
 
   const addTask = async (event) => {
     event.preventDefault();
-    
     try {
       if (!selectedTeam || !taskName || !taskDate || !selectedUserEmail || !taskDescription) {
         toast.error('Incomplete task details. Please fill in all fields.');
@@ -244,9 +275,9 @@ function Tasks({ user }) {
         createdAt: Timestamp.now(),
       });
       
-      // Use the correct function for success toast
       toast.success('Successfully added task');
       closeModal(); // Make sure this function is called after successful addition
+      setLastUpdate(Date.now()); // Update lastUpdate state to trigger refresh
     } catch (error) {
       console.error('Error adding task:', error);
       toast.error('Error adding task.'); // Display an error toast
@@ -467,8 +498,8 @@ function Tasks({ user }) {
                     <div className="flex justify-center">
                       <img
                         className="object-cover w-20 h-20 border-2 border-blue-500 rounded-full dark:border-blue-400"
-                        alt="User avatar"
-                        src="https://images.unsplash.com/photo-1499714608240-22fc6ad53fb2?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=76&q=80"
+                        alt="Assigned User"
+                        src={task.profilePicUrl} // This should refer to the profile picture URL
                       />
                     </div>
 
