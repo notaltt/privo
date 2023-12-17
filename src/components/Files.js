@@ -40,6 +40,8 @@ export default function Files(){
     const searchComponent = useRef(null);
     const dropdownComponent = useRef(null);
     const [isLeaveTeamModalOpen, setLeaveTeamModalOpen] = useState(false);
+    const [teamHovered, setTeamHovered] = useState([]);
+    const [currentIndex, setCurrentIndex] = useState(null);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -70,9 +72,10 @@ export default function Files(){
         fetchFiles();
     };
 
-    const handleTeamClick = (selectedTeamName) => {
+    const handleTeamClick = (selectedTeamName, index) => {
         setTeamName(selectedTeamName);
         setShowJoinedTeams(true);
+        setCurrentIndex(index);
         setFileListKey((prevKey) => prevKey + 1);
     };
 
@@ -315,6 +318,20 @@ export default function Files(){
             document.addEventListener('click', click);
         }
     }, [searchDropdown]);
+
+    const handleEnterMouse = (e) => {
+        const newHoveredState = [...teamHovered];
+        if(e === currentIndex) {
+            newHoveredState[e] = true;
+        }
+        setTeamHovered(newHoveredState);
+    };
+
+    const handleLeaveMouse = (e) => {
+        const newHoveredState = [...teamHovered];
+        newHoveredState[e] = false;
+        setTeamHovered(newHoveredState);
+    };
     
   
     return(
@@ -401,12 +418,24 @@ export default function Files(){
                             {joinedTeams && joinedTeams.length > 0 && showJoinedTeams &&  (
                                 <div className='overflow-x-auto p-5'>
                                     <div className='flex space-x-4'>
-                                    {joinedTeams.map((team) => (
+                                    {joinedTeams.map((team, index) => (
                                         <div className='flex'>
                                             <div key={team.id} className='flex-none'>
-                                                <div className={`p-4 rounded-lg cursor-pointer ${teamName === team.teamName ? 'bg-slate-200' : 'bg-slate-50 shadow-md '}`} onClick={() => handleTeamClick(team.teamName)}>
-                                                    <h2 className='text-xl font-semibold dark:text-white text-gray-700'>{team.teamName}</h2>
-                                                    <p className='text-gray-500'>{team.totalMembers} {member(team.totalMembers)}</p>
+                                                <div className={`p-4 rounded-lg cursor-pointer ${teamName === team.teamName ? 'bg-slate-200' : 'bg-slate-50 shadow-md '}`} 
+                                                    onClick={() => handleTeamClick(team.teamName, index)} 
+                                                    onMouseEnter={() => handleEnterMouse(index)}
+                                                    onMouseLeave={() => handleLeaveMouse(index)}>  
+                                                    {teamHovered[index] ? (
+                                                        <>
+                                                            <button onClick={openLeaveModal} className='text-xl font-semibold dark:text-white text-gray-700'>LEAVE TEAM</button>
+                                                            <p className='text-gray-500'>{team.teamName}</p>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <h2 className='text-xl font-semibold dark:text-white text-gray-700'>{team.teamName}</h2>
+                                                            <p className='text-gray-500'>{team.totalMembers} {member(team.totalMembers)}</p>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -441,7 +470,6 @@ export default function Files(){
                     {teamName !== '' ? (
                         <div key={fileListKey}>
                             <FileList company={userCompany} team={teamName} />
-                            <button onClick={openLeaveModal} className="m-4 px-4 py-2 bg-blue-500 text-white rounded-md">Leave Team</button>
                         </div>
                     ) : (
                         <div className="my-4 p-2 border rounded-lg dark:text-white dark:bg-gray-900 bg-white mx-auto inline-block">

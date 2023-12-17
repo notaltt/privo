@@ -496,7 +496,7 @@ export default function Dashboard({user}){
                 <main>
                     <div className='flex flex-row'>
                         <div className='w-3/4 h-screen grid grid-rows-2 p-5'>
-                            <div className='p-5 h-3/4 rounded-xl bg-gray-100 dark:text-white dark:bg-gray-900' id='announcement'>
+                            <div className='p-5 h-3/4  dark:text-white' id='announcement'>
                                 <h1 className='text-left text-3xl font-bold dark:text-white text-gray-700'>Announcements</h1>
                                 {userManager && (
                                     <div className="mb-4 flex gap-3">

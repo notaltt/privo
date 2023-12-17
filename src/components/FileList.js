@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import storage from './firebase';
 import { ref, listAll, getDownloadURL, getMetadata, uploadString, deleteObject} from "firebase/storage"
-import {ReactComponent as Ellipsis} from '../images/ellipsis.svg';
+import { ReactComponent as Ellipsis } from '../images/delete.svg';
 import { pushNotifications } from './notifications';
 import { collection, getDocs, where, query, doc, updateDoc, getDoc } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
@@ -54,6 +54,9 @@ const FileList = ({ company, team }) => {
   const [nameSort, setNameSort] = useState(true);
   const [sizeSort, setSizeSort] = useState(true);
   const [typeSort, setTypeSort] = useState(true);
+  const [deleteFolder, setDeleteFolder] = useState(false);
+  const [selectedFolder, setSelectedFolder] = useState('');
+  const folderRef = ref(storage, path + `/${selectedFolder.name}/`);
 
   const deleteMessage = selected.length === 1 ? `Are you sure you want to delete ${selected[0]}?` : `Are you sure you want to delete these ${selected.length} files?`;
 
@@ -370,6 +373,7 @@ const FileList = ({ company, team }) => {
 
   function closeDelete(){
     setDeleteMenu(false);
+    setDeleteFolder(false);
   }
 
   function deleteFile(fileNames) {
@@ -484,6 +488,26 @@ const FileList = ({ company, team }) => {
     const sortedList = sortFiles(listFile, sortType, isReverse);
     setListFile(sortedList);
   };
+
+  const deleteFolderContents = async (folderRef) => {
+    const folderContents = await listAll(folderRef);
+  
+    const deleteFilePromises = folderContents.items.map(async (item) => {
+      await deleteObject(item);
+      console.log(`File ${item.fullPath} is deleted.`);
+    });
+
+    await Promise.all(deleteFilePromises);
+  
+    const deleteFolderPromises = folderContents.prefixes.map(async (subfolderRef) => {
+      await deleteFolderContents(subfolderRef);
+    });
+    
+    setDeleteFolder(false);
+    fetchUpdatedList();
+    toast.success(`Folder ${selectedFolder.name} deleted successfully`);
+    await Promise.all(deleteFolderPromises);
+  };
   
 
   return (
@@ -586,6 +610,7 @@ const FileList = ({ company, team }) => {
                 <div>
                   <div key={index}>
                     {prefix.isFolder ? (
+                      <div className='flex justify-between'>
                       <div className='h-full w-full grid grid-cols-3 pl-2 pt-3 pb-3 cursor-pointer border-b border-gray-300 hover:bg-slate-100 transition duration-300 ease-in-out' onClick={() => handleFolderClicks(prefix.name)}>
                         <div className='flex'>
                           <div className='text-slate-600 mr-2'>
@@ -597,27 +622,38 @@ const FileList = ({ company, team }) => {
                           -
                         </div>
                         <div className='flex'>
-                          folder
+                          <h1>folder</h1>
+                
                         </div>
                       </div>
+                      <div className='pl-2 pt-3 pb-3 cursor-pointer pr-10 border-b border-gray-300 flex justify-center items-center hover:bg-slate-100' onClick={(e) => {setDeleteFolder(true); setSelectedFolder(prefix)}}>
+                        <Ellipsis/>
+                      </div>
+                    </div>
                     ):(
-                      <div className={`h-full w-full grid grid-cols-3 pl-2 pt-3 pb-3 border-b border-gray-300  transition duration-300 ease-in-out cursor-pointer ${selected.includes(prefix.name) ? 'bg-slate-300 hover:bg-slate-300' : 'hover:bg-slate-100'}`} 
+                      <div className='flex justify-between hover:bg-slate-100'>
+                        <div className={`h-full w-full grid grid-cols-3 pl-2 pt-3 pb-3 border-b border-gray-300  transition duration-300 ease-in-out cursor-pointer ${selected.includes(prefix.name) ? 'bg-slate-300 hover:bg-slate-300' : 'hover:bg-slate-100'}`} 
                         onClick={() => {handleListClick(prefix.name); handleFileClick(prefix);
-                      }} >
-                        <div className='flex'>
-                          <div className='text-slate-600 mr-2'>
-                            {renderIcon(prefix.type)} 
+                        }} >
+                          <div className='flex'>
+                            <div className='text-slate-600 mr-2'>
+                              {renderIcon(prefix.type)} 
+                            </div>
+                            <h1>{prefix.name}</h1>
                           </div>
-                          <h1>{prefix.name}</h1>
+                          <div className='flex'>
+                            <h1>{humanFileSize(prefix.size)}</h1>
+                          </div>
+                          <div className='flex justify-between'>
+                            <h1>{fileTypeRename(prefix.type)}</h1>
+                          </div>
                         </div>
-                        <div className='flex'>
-                          <h1>{humanFileSize(prefix.size)}</h1>
-                        </div>
-                        <div className='flex justify-between'>
-                          <h1>{fileTypeRename(prefix.type)}</h1>
-                          {/* <div className='cursor-pointer pr-10' onClick={(e) => handleEllipsisClick(e, prefix)}>
+                        <div>
+                        <div className='border-b border-gray-300'>
+                          <div className='opacity-0 pl-2 pt-3 pb-3 pr-10 ease-in-out cursor-pointer'>
                             <Ellipsis/>
-                          </div> */}
+                          </div>
+                        </div>
                         </div>
                       </div>
                     )}
@@ -640,6 +676,16 @@ const FileList = ({ company, team }) => {
             </button>
           ))}
         </div>
+
+        {deleteFolder && selectedFolder && (
+          <div className='bg-black bg-opacity-10 fixed top-0 left-0 w-full h-full flex items-center justify-center z-50 drop-shadow-lg'>
+          <div className='bg-white dark:bg-gray-900 rounded-lg p-4 shadow-md'>
+              <h2 className='text-lg font-semibold mb-4'> Are you sure deleting folder {selectedFolder.name}?</h2>
+              <button className='bg-red-500 text-white py-2 px-4 rounded mr-2 hover:bg-blue-600' onClick={() => deleteFolderContents(folderRef)}>Yes</button>
+              <button className='bg-gray-300 text-gray-700 py-2 px-4 rounded hover-bg-gray-400' onClick={() => closeDelete()}>Cancel</button>
+          </div>
+        </div>
+        )}
 
         {showFileDetail && selectedFile && (
           <div className="fixed inset-0 bg-gray-600 bg-opacity-75 flex justify-center items-center z-50" onClick={() => setShowFileDetail(false)}>
@@ -695,7 +741,7 @@ const FileList = ({ company, team }) => {
         )} */}
 
         {deleteMenu && selected && (
-          <div className='fixed top-0 left-0 w-full h-full flex items-center justify-center z-50 drop-shadow-lg'>
+          <div className='bg-black bg-opacity-10 fixed top-0 left-0 w-full h-full flex items-center justify-center z-50 drop-shadow-lg'>
             <div className='bg-white dark:bg-gray-900 rounded-lg p-4 shadow-md'>
                 <h2 className='text-lg font-semibold mb-4'>{deleteMessage}</h2>
                 <button className='bg-red-500 text-white py-2 px-4 rounded mr-2 hover:bg-blue-600' onClick={() => deleteFile(selected)}>Yes</button>
