@@ -327,8 +327,15 @@ function Tasks({ user }) {
 
   const confirmDeleteTask = () => {
     if (selectedTask) {
-      deleteTaskFromFirestore(selectedTask.id);
-      closeTaskModal();
+      deleteTaskFromFirestore(selectedTask.id)
+        .then(() => {
+          closeTaskModal();
+          window.location.reload(); // Reload the page after successful deletion
+        })
+        .catch((error) => {
+          console.error("Error deleting task:", error);
+          // Handle error
+        });
     }
   };
 
