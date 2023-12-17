@@ -145,7 +145,6 @@ export default function Register() {
       // Now, you can store additional user data in Firestore if needed
       const userData = {
         uid: user.uid,
-        avatar: "null",
         email: email,
         name: name,
         phone: phone,
