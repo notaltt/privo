@@ -28,6 +28,7 @@ export default function Team() {
   const [openMembers, setOpenMembers] = useState(false);
   const [manageMembers, setManageMembers] = useState(false);
   const [showChangePhoto, setShowChangePhoto] = useState(false);
+  const [userCompany, setUserCompany] = useState('');
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -173,6 +174,7 @@ export default function Team() {
       if (userSnapshot.exists()) {
         const userData = userSnapshot.data();
         const userCompany = userData.company;
+        setUserCompany(userCompany);
   
         const teamRef = collection(db, "team");
         const queryCompany = query(teamRef, where('fromCompany', '==', userCompany));
@@ -202,14 +204,15 @@ export default function Team() {
 
     const userCollection = collection(db, 'users');
     const userQuery = query(userCollection, where('email', '==', selectedUser));
-    const userSnapshot = (await getDocs(userQuery));
+    const userSnapshot = await getDocs(userQuery);
     const userID = userSnapshot.docs[0].id;
     const currentTime = new Date();
 
     const invitesCollection = collection(db, 'invites');
     const inviteDocRef = await addDoc(invitesCollection, {
+        company: userCompany,
         manager: currentUserData.username || '',
-        team: selectedTeam.id,
+        team: selectedTeam.teamName,
         time: currentTime,
         user: userID,
     });

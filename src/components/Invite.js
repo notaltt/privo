@@ -166,32 +166,34 @@ const Invite = ({ code, className }) => {
 
     const currentLoggedEmail = auth.currentUser.email;
     const teamInvitation = inviteData.team;
+    console.log(teamInvitation);
 
     try {
         const teamCollection = collection(db, 'team');
-        const teamDoc = doc(teamCollection, teamInvitation);
-    
+        const teamQuery = query(teamCollection, where('teamName', 'array-contains-any', teamInvitation), where('fromCompany', '==', inviteData.company))
+        const docSnapshot = await getDocs(teamQuery);
+
         const userCollection = collection(db, 'users');
         const userQuery = query(userCollection, where('email', '==', currentLoggedEmail));
         const userSnapshot = await getDocs(userQuery);
-    
+
         const currentTeams = userSnapshot.docs[0].data().teams || [];
-    
-        const docSnapshot = await getDoc(teamDoc);
-        const currentMembers = docSnapshot.data().members || [];
 
-        if (!currentTeams.includes(teamInvitation)) {
-          currentTeams.push(teamInvitation);
+        const currentMembers = docSnapshot.docs[0].data().members || [];
 
-          const userDoc = doc(userCollection, userSnapshot.docs[0].id);
-          await updateDoc(userDoc, { teams: currentTeams });
+        if (!currentTeams.includes(teamInvitation.toString())) {
+            currentTeams.push(teamInvitation.toString());
+
+            const userDoc = doc(userCollection, userSnapshot.docs[0].id);
+            await updateDoc(userDoc, { teams: currentTeams });
         } else {
-          console.log(`${teamInvitation} is already a team of ${currentLoggedEmail}.`);
+            console.log(`${teamInvitation} is already a team of ${currentLoggedEmail}.`);
         }
 
         if (!currentMembers.includes(currentLoggedEmail)) {
             currentMembers.push(currentLoggedEmail);
 
+            const teamDoc = doc(teamCollection, docSnapshot.docs[0].id);
             await updateDoc(teamDoc, {
                 members: currentMembers,
             });
@@ -200,11 +202,12 @@ const Invite = ({ code, className }) => {
         }
 
         navigateToFiles();
-    
+
     } catch (error) {
         console.error('Error adding member:', error);
     }
-  };
+};
+
 
   const navigate = useNavigate();
   const navigateToFiles = () => {

@@ -158,10 +158,11 @@ export default function Files(){
 
         if (userSnapshot.exists()) {
             const userData = userSnapshot.data();
+            const userCompany = userData.company;
             const userTeams = userData.teams || [];
 
             const teamRef = collection(db, 'team');
-            const teamQuery = query(teamRef, where('teamName', 'array-contains-any', userTeams));
+            const teamQuery = query(teamRef, where('teamName', 'array-contains-any', userTeams), where('fromCompany', '==', userCompany));
             const teamSnapshot = await getDocs(teamQuery);
 
             teamSnapshot.forEach((doc) => {
