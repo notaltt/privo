@@ -815,9 +815,14 @@ const FileList = ({ company, team }) => {
       file && file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document" || file.type == "application/vnd.oasis.opendocument.text" ? 
       <div>
         <h1>{file.name}</h1>
-        Doc
+        <a href={url}>Unsupported file, click to download.</a>
         <DocViewer documents={[{uri:{url}, fileType: "docx"}]} pluginRenderers={DocViewerRenderers}/>
         {/* {window.open(url, '_blank')} */}
+        {/* <FileViewer
+        fileType={file.type}
+        filePath={url}
+        /> */}
+        {/* <embed type={file.type} src={url} width={100+'%'} height={700}></embed> */}
 
       </div>  
       : 
@@ -827,10 +832,27 @@ const FileList = ({ company, team }) => {
 
     }
     {
-      file && file.type == "text/plain" || file.type == "text/html"? 
+      file && file.type == "text/plain" || file.type == "text/html" || file.type == "application/octet-stream" ? 
       <div>
         <h1>{file.name}</h1>
         <iframe title={file.name} src={url} width='100%' height='500px' />
+        
+      </div>  
+      : 
+      <div>
+        {/*  */}
+      </div>
+
+    }
+    {
+      file && file.type == "application/vnd.ms-powerpoint" ? 
+      <div>
+        <h1>{file.name}</h1>
+        <a href={url}>Unsupported file, click to download.</a>
+        {/* <embed type="application/vnd.ms-powerpoint" src={url} width={100+'%'} height={700}></embed> */}
+        <DocViewer documents={[{url}]} pluginRenderers={DocViewerRenderers}/>
+        
+
         
       </div>  
       : 
@@ -854,11 +876,12 @@ const FileList = ({ company, team }) => {
     }
     {
       file && file.type == "audio/wav" || file.type == "audio/mpeg" ? 
-      <div>
-        <h1>{file.name}</h1>
-        <video src={url} controls />
-
-      </div> 
+      <div className="flex items-center justify-center h-screen">
+      <div className="text-center">
+        <h1 className="text-2xl font-bold">{file.name}</h1>
+        <video className="mt-4" src={url} controls />
+      </div>
+    </div>
       : 
       <div>
         {/*  */}
@@ -869,8 +892,14 @@ const FileList = ({ company, team }) => {
       file && file.type == "application/docx" || file.type == "application/msword" || file.type == "application/odt" ? 
       <div>
         <h1>{file.name}</h1>
-        Docx
+        <a href={url}>Unsupported file, click to download.</a>
         <DocViewer documents={[{uri:{url}, fileType: "docx"}]} pluginRenderers={DocViewerRenderers}/>
+        {/* <FileViewer
+        fileType={file.type}
+        filePath={url}
+        /> */}
+        
+        {/* <embed type={file.type} src={url} width={100+'%'} height={700}></embed> */}
         
         {/* {window.open(url, '_blank')} */}
 
@@ -881,20 +910,7 @@ const FileList = ({ company, team }) => {
       </div>
 
     }
-    {
-      file && file.type == "application/x-zip-compressed" || file.type == "application/epub+zip" ? 
-      <div>
-        <h1>{file.name}</h1>
-        Unable to preview, file downloaded automatically to view.
-        {/* {window.open(url, '_blank')} */}
-
-      </div> 
-      : 
-      <div>
-        {/*  */}
-      </div>
-
-    }
+    
     <button className="px-4 py-2 cursor-pointer" onClick={closeView}>Go back</button>
     </>
   }
