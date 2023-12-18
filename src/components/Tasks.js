@@ -210,9 +210,10 @@ function Tasks({ user }) {
     if (userSnapshot.exists()) {
         const userData = userSnapshot.data();
         const userTeams = userData.teams || [];
+        const userCompany = userData.company;
 
         const teamRef = collection(db, 'team');
-        const teamQuery = query(teamRef, where('teamName', 'array-contains-any', userTeams));
+        const teamQuery = query(teamRef, where('teamName', 'array-contains-any', userTeams), where('fromCompany', '==', userCompany));
         const teamSnapshot = await getDocs(teamQuery);
 
         teamSnapshot.forEach((doc) => {
@@ -370,16 +371,16 @@ function Tasks({ user }) {
                   value={selectedTeam}
                   onChange={(e) => {
                     const selectedId = e.target.value;
-                    const team = joinedTeams.find((team) => team.id === selectedId);
-                    setSelectedTeam(team ? team.id : ''); // Set the selected team ID
-                    fetchUsers(currentUser, team ? team.id : ''); // Fetch users for the selected team
+                    console.log(selectedId);
+                    setSelectedTeam(selectedId); // Set the selected team ID
+                    fetchUsers(currentUser, selectedId); // Fetch users for the selected team
                   }}
                   id="team-select"
                 >
                   <option value="" disabled selected>Please Select Team:</option> {/* Add default option */}
                   {joinedTeams && joinedTeams.length > 0 ? (
                     joinedTeams.map((team) => (
-                      <option key={team.id} value={team.id}>
+                      <option key={team.id} value={team.teamName}>
                         {team.teamName} {/* Display team name as an option */}
                       </option>
                     ))
