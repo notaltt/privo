@@ -345,6 +345,8 @@ export default function Files(){
             <SideBar isOpen={isSidebarOpen} toggleSidebar={toggleSidebar} />
             <Toaster richColors expand={false} position="bottom-center"/>
             <LeaveTeamModal
+                name={userName}
+                role={userRole}
                 isOpen={isLeaveTeamModalOpen}
                 closeModal={closeLeaveModal}
                 user={auth.currentUser ? auth.currentUser.email : ''}

@@ -3,8 +3,10 @@ import { useLocation } from 'react-router-dom';
 import { firestore as db } from "./firebase";
 import { collection, getDocs, where, query, doc, getDoc, updateDoc } from "firebase/firestore";
 import { useNavigate } from 'react-router-dom';
+import { pushNotifications } from './notifications';
 
-const LeaveTeamModal = ({ user, team, isOpen, closeModal, company }) => {
+const LeaveTeamModal = ({ name, role, user, team, isOpen, closeModal, company }) => {
+
     const leaveTeam = async () => {
         try {
 
@@ -28,6 +30,14 @@ const LeaveTeamModal = ({ user, team, isOpen, closeModal, company }) => {
           const updatedMembers = currentMembers.filter(member => member !== user);
           const teamDoc = doc(teamCollection, docSnapshot.docs[0].id);
           await updateDoc(teamDoc, { members: updatedMembers });
+
+          const notificationData = {
+            time: new Date(),
+            type: "team",
+            content: "leaving " + team.toString(),
+        };
+
+          pushNotifications(team.toString(), '', name, role, notificationData.time, notificationData.type, notificationData.content, company);
       
           navigateToFiles();
           
