@@ -4,28 +4,29 @@ import { firestore as db } from "./firebase";
 import { collection, getDocs, where, query, doc, getDoc, updateDoc } from "firebase/firestore";
 import { useNavigate } from 'react-router-dom';
 
-const LeaveTeamModal = ({ user, team, isOpen, closeModal }) => {
+const LeaveTeamModal = ({ user, team, isOpen, closeModal, company }) => {
     const leaveTeam = async () => {
         try {
-          const teamCollection = collection(db, 'team');
-          const teamDoc = doc(teamCollection, team);
+
+        const teamCollection = collection(db, 'team');
+        const teamQuery = query(teamCollection, where('teamName', 'array-contains-any', team), where('fromCompany', '==', company))
+        const docSnapshot = await getDocs(teamQuery);
       
           const userCollection = collection(db, 'users');
           const userQuery = query(userCollection, where('email', '==', user));
           const userSnapshot = await getDocs(userQuery);
       
           const currentTeams = userSnapshot.docs[0].data().teams || [];
-          
-          const teamSnapshot = await getDoc(teamDoc);
-          const currentMembers = teamSnapshot.data().members || [];
-      
+          const currentMembers = docSnapshot.docs[0].data().members || [];
+                          
           // Remove the team from the user's teams
-          const updatedTeams = currentTeams.filter(teamName  => teamName !== team);
+          const updatedTeams = currentTeams.filter(teamName  => teamName !== team.toString());
           const userDoc = doc(userCollection, userSnapshot.docs[0].id);
           await updateDoc(userDoc, { teams: updatedTeams });
       
           // Remove the user from the team's members
           const updatedMembers = currentMembers.filter(member => member !== user);
+          const teamDoc = doc(teamCollection, docSnapshot.docs[0].id);
           await updateDoc(teamDoc, { members: updatedMembers });
       
           navigateToFiles();

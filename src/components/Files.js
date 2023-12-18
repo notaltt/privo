@@ -348,7 +348,8 @@ export default function Files(){
                 isOpen={isLeaveTeamModalOpen}
                 closeModal={closeLeaveModal}
                 user={auth.currentUser ? auth.currentUser.email : ''}
-                team={teamName[0] || ''}
+                team={teamName || ''}
+                company={userCompany}
             />
 
             <div className='class="flex flex-col flex-1 w-full"'>
