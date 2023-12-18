@@ -21,6 +21,8 @@ const Invite = ({ code, className }) => {
   const [isExpired, setIsExpired] = useState(false);
   const [loading, setLoading] = useState(false);
   const [timeDifference, setTimeDifference] = useState({minutes:0, seconds:-1});
+  const [userName, setUserName] = useState('');
+  const [userRole, setUserRole] = useState('');
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((user) => {
@@ -94,6 +96,9 @@ const Invite = ({ code, className }) => {
         if (userDocSnapshot.exists()) {
           const userData = userDocSnapshot.data();
           const userRole = userData.role;
+          const userName = userData.name;
+          setUserRole(userRole);
+          setUserName(userName);
             if (userRole === "manager")
               setIsManager(true);
             else if(userRole === "member")
@@ -177,9 +182,6 @@ const Invite = ({ code, className }) => {
         const userCollection = collection(db, 'users');
         const userQuery = query(userCollection, where('email', '==', currentLoggedEmail));
         const userSnapshot = await getDocs(userQuery);
-        const userData = userSnapshot.data();
-        const userName = userData.name;
-        const userRole = userData.role;
 
         const currentTeams = userSnapshot.docs[0].data().teams || [];
 
