@@ -724,9 +724,6 @@ const FileList = ({ company, team }) => {
                 <p className="my-4 text-lg leading-relaxed text-slate-500">
                   File type: {fileTypeRename(selectedFile.type)} <br/>
                   File size: {humanFileSize(selectedFile.size)} <br/>
-                  Uploaded by: <br/>
-                  Date Uploaded: <br/>
-                  {/* Additional information */}
                 </p>
               </div>
               <div className="border-t border-solid border-gray-200 rounded-b flex items-center justify-end p-6">

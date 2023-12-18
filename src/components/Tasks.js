@@ -12,6 +12,7 @@ import { onAuthStateChanged } from "firebase/auth";
 import { auth } from '../../src/components/firebase';
 import { Toaster, toast } from 'sonner'
 import myImage from '../images/logoOpacity.png';
+import noPic from '../images/nopic.png'
 import { getStorage, getDownloadURL, ref } from 'firebase/storage';
 
 function Tasks({ user }) {
@@ -78,11 +79,11 @@ function Tasks({ user }) {
           } catch (error) {
             // If there's any error (e.g., file not found), use a placeholder image
             console.error(`Error fetching profile picture for UID ${userUid}:`, error);
-            profilePicUrl = 'https://via.placeholder.com/150';
+            profilePicUrl = noPic;
           }
         } else {
           console.error(`No UID found for assigned user with email ${assignedUserEmail}`);
-          profilePicUrl = 'https://via.placeholder.com/150';
+          profilePicUrl = noPic;
         }
   
         console.log(profilePicUrl);
@@ -265,6 +266,11 @@ function Tasks({ user }) {
         return;
       }
   
+      if (selectedUserEmail === '') {
+        toast.error('Please select a user to assign the task.');
+        return;
+      }
+  
       const tasksCollection = collection(db, 'tasks');
   
       await addDoc(tasksCollection, {
@@ -331,6 +337,8 @@ function Tasks({ user }) {
       deleteTaskFromFirestore(selectedTask.id)
         .then(() => {
           closeTaskModal();
+          closeModal(); // Make sure this function is called after successful addition
+          setLastUpdate(Date.now()); // Update lastUpdate state to trigger refresh
           window.location.reload(); // Reload the page after successful deletion
         })
         .catch((error) => {
@@ -545,7 +553,7 @@ function Tasks({ user }) {
                   Date added: {selectedTask.dateAdded?.toDate().toLocaleDateString('en-US')}
                 </h1>
                 <h1 className="text-gray-700 dark:text-gray-300">
-                  Deadline: {selectedTask.date}
+                  Deadline: {dayjs(selectedTask.date).format('MM/DD/YYYY')}
                 </h1>
                 <h1 className="text-gray-700 dark:text-gray-300">Assigned to: {selectedTask.assignedUser} </h1>
                 
@@ -633,7 +641,15 @@ function Tasks({ user }) {
                       Assign a user
                     </label>
                     <div className='mt-2'>
-                    <select name='users' id='users' value={selectedUserEmail} onChange={handleUserChange} required className="block w-full px-4 py-2 border rounded-lg mt-1">
+                    <select
+                      name='users'
+                      id='users'
+                      value={selectedUserEmail}
+                      onChange={handleUserChange}
+                      required
+                      className="block w-full px-4 py-2 border rounded-lg mt-1"
+                    >
+                      <option value="">Please assign a user</option>
                       {users.map((user, index) => (
                         <option key={index} value={user.email}>
                           {user.name} ({user.email})

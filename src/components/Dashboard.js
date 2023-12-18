@@ -552,7 +552,7 @@ export default function Dashboard({user}){
                                     <div>No announcements</div>
                                 )}
                             </div>
-                            <div className='p-5 max-h-1/2 bg-slate-50 rounded-xl dark:text-white dark:bg-gray-900' id='tasks'>
+                            <div className='p-5 max-h-1/2 overflow-y-auto bg-slate-50 rounded-xl dark:text-white dark:bg-gray-900' id='tasks'>
                                 <div className='dark:text-white'>
                                     {tasks.length > 0 ? (
                                     <ul className="divide-y divide-gray-300">
