@@ -607,7 +607,9 @@ export default function Dashboard({user}){
                                         {userNotification.map((person) => (
                                             <li key={person.id} className="flex justify-between gap-x-6 py-5 pe-6">
                                                 <div className="flex min-w-0 bggap-x-4">
-                                                    <img className="h-12 w-12 flex-none rounded-full bg-gray-50 me-4" src={person.avatar==="null" ? userLogo:person.avatar} alt="" />
+                                                    <img className="h-12 w-12 flex-none rounded-full bg-gray-50 me-4"
+                                                    src={person.avatar==="null" || !person.avatar ? userLogo:person.avatar}
+                                                    alt="" />
                                                     <div className="min-w-0">
                                                         <p className="text-sm text-start dark:text-white font-semibold leading-6 text-gray-900">{person.name}</p>
                                                         <p className="mt-1 truncate text-xs leading-5 dark:text-white text-gray-500">{person.content} | {person.team}</p>
