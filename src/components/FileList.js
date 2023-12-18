@@ -336,7 +336,7 @@ const FileList = ({ company, team }) => {
       const readmeFile = ref(newDir, 'readme.txt');
       await uploadString(readmeFile, '');
       
-      pushNotifications(userTeam, userAvatar, userName, userRole, notificationData.time, notificationData.type, notificationData.content);
+      pushNotifications(userTeam, '', userName, userRole, notificationData.time, notificationData.type, notificationData.content, userCompany);
 
       fetchUpdatedList();
       toast.success(`Folder '${folderName}' created.`);
@@ -510,7 +510,14 @@ const FileList = ({ company, team }) => {
     const deleteFolderPromises = folderContents.prefixes.map(async (subfolderRef) => {
       await deleteFolderContents(subfolderRef);
     });
-    
+
+    const notificationData = {
+      time: new Date(),
+      type: "folder",
+      content: "deleted "+ selectedFolder.name +" folder"
+    }
+    pushNotifications(userTeam, '', userName, userRole, notificationData.time, notificationData.type, notificationData.content, userCompany);
+
     setDeleteFolder(false);
     fetchUpdatedList();
     toast.success(`Folder ${selectedFolder.name} deleted successfully`);
