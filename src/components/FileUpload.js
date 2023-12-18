@@ -20,6 +20,7 @@ export default function FileUpload({isVisible, company, team, path, uploadSucces
   const [userAvatar, setUserAvatar] = useState(null);
   const [userName, setUserName] = useState(null);
   const [userRole, setUserRole] = useState(null);
+  const [userCompany, setUserCompany] = useState('');
   const [uploadedFileNames, setUploadedFileNames] = useState([]);
   const [userTeam, setUserTeam] = useState(team);
 
@@ -48,10 +49,12 @@ export default function FileUpload({isVisible, company, team, path, uploadSucces
         const userAvatar = userData.avatar;
         const userName = userData.name;
         const userRole = userData.role;
+        const userCompany = userData.company;
 
         setUserName(userName);
         setUserAvatar(userAvatar);
         setUserRole(userRole);
+        setUserCompany(userCompany);
       }
     }catch(e){
 
@@ -139,10 +142,10 @@ export default function FileUpload({isVisible, company, team, path, uploadSucces
             type: "Uploaded files",
             content: notificationContent,
           };
-          pushNotifications(team, userAvatar, userName, userRole, notificationData.time, notificationData.type, notificationData.content);
+          pushNotifications(team, '', userName, userRole, notificationData.time, notificationData.type, notificationData.content, userCompany);
           
           fileNames.forEach(async(fileName) => {
-            await addToFirestore(fileName, path + `/${fileName}`, team);
+            await addToFirestore(fileName, path + `/${fileName}`, team, userCompany);
           });
 
           toast.success('Files are uploaded.')

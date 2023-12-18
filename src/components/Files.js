@@ -74,6 +74,7 @@ export default function Files(){
 
     const handleTeamClick = (selectedTeamName, index) => {
         setTeamName(selectedTeamName);
+        console.log(teamName);
         setShowJoinedTeams(true);
         setCurrentIndex(index);
         setFileListKey((prevKey) => prevKey + 1);
@@ -182,25 +183,27 @@ export default function Files(){
 
     const fetchFiles = async () => {
         const teamFiles = [];
-      
         try {
           for (const team of joinedTeams) {
-            const fileRef = doc(db, 'files', team.id);
-            const fileSnapshot = await getDoc(fileRef);
-      
-            if (fileSnapshot.exists()) {
-              const data = fileSnapshot.data();
-              if (data.fileData && Array.isArray(data.fileData)) {
-                teamFiles.push(...data.fileData);
-              }
+            if(team && userCompany){
+                const fileRef = collection(db, 'files');
+                const fileQuery = query(fileRef, where('teamName', '==', team.teamName.toString()), where('fromCompany', '==', userCompany));
+                const querySnapshot = await getDocs(fileQuery);
+        
+                querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                if (data.fileData && Array.isArray(data.fileData)) {
+                    teamFiles.push(...data.fileData);
+                }
+                });
             }
           }
         } catch (error) {
           console.error(error);
-        }
-      
+        }      
         setFileData(teamFiles);
-    };
+      };
+      
 
     const member = (length) => {
         return length === 1 ? " member" : " members";
@@ -231,14 +234,15 @@ export default function Files(){
             .then(() => {
             pushNotifications(
                 selected.team,
-                userAvatar,
+                '',
                 userName,
                 userRole,
                 notificationData.time,
                 notificationData.type,
-                notificationData.content
+                notificationData.content,
+                userCompany
             );
-            deleteFromFirestore(fileName, selected.path, selected.team);
+            deleteFromFirestore(fileName, selected.path, selected.team, userCompany);
             setDeleteMenu(false);
             fetchFiles();
             toast.success(`File ${fileName} deleted successfully.`);

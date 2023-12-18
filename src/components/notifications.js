@@ -1,34 +1,35 @@
-import { firestore as db } from './firebase';
-import { arrayUnion, doc, updateDoc } from 'firebase/firestore';
+import { firestore as db} from './firebase';
+import { collection, arrayUnion, query, where, getDocs, updateDoc, doc } from 'firebase/firestore';
 
-export async function pushNotifications(team, avatar, name, role, time, type, content) {
+export async function pushNotifications(team, avatar, name, role, time, type, content, company) {
   const teamString = team.toString();
-  const avatarString = avatar.toString();
-  const nameString = name.toString();
-  const roleString = role.toString();
-  const timeString = time.toString();
-  const typeString = type.toString();
-  const contentString = content.toString();
+  const companyString = company.toString();
 
   const notificationData = {
     team: teamString,
-    avatar: avatarString,
-    name: nameString,
-    role: roleString,
-    time: timeString,
-    type: typeString,
-    content: contentString,
+    avatar: avatar.toString(),
+    name: name.toString(),
+    role: role.toString(),
+    time: time.toString(),
+    type: type.toString(),
+    content: content.toString(),
   };
 
-  const notificationsDocRef = doc(db, 'notifications', teamString);
+  const notificationsCollectionRef = collection(db, 'notifications');
+  const notificationQuery = query(
+    notificationsCollectionRef,
+    where('teamName', '==', teamString),
+    where('fromCompany', '==', companyString)
+  );
+  const querySnapshot = await getDocs(notificationQuery);
 
   try {
-    await updateDoc(notificationsDocRef, {
+    const docSnapshot = doc(notificationsCollectionRef,  querySnapshot.docs[0].id);
+    await updateDoc(docSnapshot, {
       notificationData: arrayUnion(notificationData),
     });
-    console.log('Notification addedd successfully.');
+    console.log('Notification added successfully.');
   } catch (error) {
     console.error('Error adding notification: ', error);
   }
 }
- 

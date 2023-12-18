@@ -42,6 +42,7 @@ export default function Dashboard({user}){
     const [announceData, setAnnounceData] = useState([]);
     const [deleteAnnounce, setDeleteAnnounce] = useState(false);
     const [selectedAnnounce, setSelectedAnnounce] = useState('');
+    const [userCompany, setUserCompany] = useState('');
 
     const toggleSidebar = () => {
       setIsSidebarOpen(!isSidebarOpen);
@@ -78,10 +79,12 @@ export default function Dashboard({user}){
                 const userName = userData.name;
                 const userRole = userData.role;
                 const userEmail = userData.email;
+                const userCompany = userData.company;
                 console.log("User Email in getUser:", userEmail);
                 setUserName(userName);
                 setUserAvatar(userAvatar);
                 setUserRole(userRole);
+                setUserCompany(userCompany);
     
                 if (userRole === 'manager') {
                     setUserManger(true);
@@ -151,17 +154,19 @@ export default function Dashboard({user}){
         if(userDoc.exists()){
             const userData = userDoc.data();
             const userTeams = userData.teams || [];
+            const userCompany = userData.company;
 
             for (const team of userTeams) {
-                const notificationRef = doc(db, 'notifications', team);
-                const notificationSnapshot = await getDoc(notificationRef);
+                const notificationRef = collection(db, 'notifications');
+                const notificationQuery = query(notificationRef, where('teamName', '==', team.toString()), where('fromCompany', '==', userCompany));
+                const notificationSnapshot = await getDocs(notificationQuery);
             
-                if (notificationSnapshot.exists()) {
-                const data = notificationSnapshot.data();
+                notificationSnapshot.forEach((doc) => {
+                    const data = doc.data();
                     if (data.notificationData && Array.isArray(data.notificationData)) {
                         notification.push(...data.notificationData);
                     }
-                }
+                });
             }
 
             notification.sort((a, b) => new Date(b.time) - new Date(a.time));
@@ -182,10 +187,11 @@ export default function Dashboard({user}){
 
         if (userSnapshot.exists()) {
             const userData = userSnapshot.data();
+            const userCompany = userData.company;
             const userTeams = userData.teams || [];
 
             const teamRef = collection(db, 'team');
-            const teamQuery = query(teamRef, where('teamName', 'array-contains-any', userTeams));
+            const teamQuery = query(teamRef, where('teamName', 'array-contains-any', userTeams), where('fromCompany', '==', userCompany));
             const teamSnapshot = await getDocs(teamQuery);
 
             teamSnapshot.forEach((doc) => {
@@ -200,7 +206,6 @@ export default function Dashboard({user}){
         console.error("Error fetching team:", error);
         }
         setJoinedTeams(teams);
-          console.log('teams: ', teams);
     };
 
     const addAnnouncement = async () => {
@@ -305,25 +310,27 @@ export default function Dashboard({user}){
 
     const fetchFiles = async () => {
         const teamFiles = [];
-      
         try {
           for (const team of joinedTeams) {
-            const fileRef = doc(db, 'files', team.id);
-            const fileSnapshot = await getDoc(fileRef);
-      
-            if (fileSnapshot.exists()) {
-              const data = fileSnapshot.data();
-              if (data.fileData && Array.isArray(data.fileData)) {
-                teamFiles.push(...data.fileData);
-              }
+            if(team && userCompany){
+                const fileRef = collection(db, 'files');
+                const fileQuery = query(fileRef, where('teamName', '==', team.teamName.toString()), where('fromCompany', '==', userCompany));
+                const querySnapshot = await getDocs(fileQuery);
+        
+                querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                console.log('Document Data:', data);  // Add this line for debugging
+                if (data.fileData && Array.isArray(data.fileData)) {
+                    teamFiles.push(...data.fileData);
+                }
+                });
             }
           }
         } catch (error) {
           console.error(error);
-        }
-      
+        }      
         setFileData(teamFiles);
-    };
+      };
 
     function downloadFile(fileName) {
         return new Promise((resolve, reject) => {

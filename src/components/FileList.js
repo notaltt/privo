@@ -57,6 +57,7 @@ const FileList = ({ company, team }) => {
   const [deleteFolder, setDeleteFolder] = useState(false);
   const [selectedFolder, setSelectedFolder] = useState('');
   const folderRef = ref(storage, path + `/${selectedFolder.name}/`);
+  const [userCompany, setUserCompany] = useState('');
 
   const deleteMessage = selected.length === 1 ? `Are you sure you want to delete ${selected[0]}?` : `Are you sure you want to delete these ${selected.length} files?`;
 
@@ -174,10 +175,12 @@ const FileList = ({ company, team }) => {
         const userAvatar = userData.avatar;
         const userName = userData.name;
         const userRole = userData.role;
+        const userCompany = userData.company;
 
         setUserName(userName);
         setUserAvatar(userAvatar);
         setUserRole(userRole);
+        setUserCompany(userCompany)
       }
     }catch(e){
 
@@ -390,15 +393,19 @@ const FileList = ({ company, team }) => {
           .then(() => {
             fetchUpdatedList();
             pushNotifications(
-              userTeam,
-              userAvatar,
+              team,
+              '',
               userName,
               userRole,
               notificationData.time,
               notificationData.type,
-              notificationData.content
+              notificationData.content,
+              userCompany
             );
-            deleteFromFirestore(fileName, path + `/${fileName}`, userTeam);
+  
+            return deleteFromFirestore(fileName, path + `/${fileName}`, team, userCompany);
+          })
+          .then(() => {
             setSelected([]);
             toast.success(`File ${fileName} deleted successfully.`);
           })
@@ -414,6 +421,7 @@ const FileList = ({ company, team }) => {
         console.error(`Error deleting files: ${error.message}`);
       });
   }
+  
   
 
   const toggleFileUpload = () => {

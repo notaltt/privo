@@ -6,6 +6,7 @@ import QRCode from 'qrcode.react';
 import { auth } from '../../src/components/firebase';
 import { useNavigate } from 'react-router-dom';
 import { differenceInMinutes, differenceInSeconds } from 'date-fns';
+import { pushNotifications } from './notifications';
 
 const Invite = ({ code, className }) => {
   const location = useLocation();
@@ -176,6 +177,9 @@ const Invite = ({ code, className }) => {
         const userCollection = collection(db, 'users');
         const userQuery = query(userCollection, where('email', '==', currentLoggedEmail));
         const userSnapshot = await getDocs(userQuery);
+        const userData = userSnapshot.data();
+        const userName = userData.name;
+        const userRole = userData.role;
 
         const currentTeams = userSnapshot.docs[0].data().teams || [];
 
@@ -200,6 +204,14 @@ const Invite = ({ code, className }) => {
         } else {
             console.log(`${currentLoggedEmail} is already a member of ${teamInvitation}.`);
         }
+
+        const notificationData = {
+          time: new Date(),
+          type: "team",
+          content: "joined team",
+        };
+
+        pushNotifications(teamInvitation, '', userName, userRole, notificationData.time, notificationData.type, notificationData.content, inviteData.company);
 
         navigateToFiles();
 
