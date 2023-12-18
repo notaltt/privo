@@ -601,7 +601,7 @@ export default function Dashboard({user}){
                             </div>
                         ) : (
                             userNotification.length > 0 ? (
-                                <div className='h-full w-1/4 overflow-y-auto'>
+                                <div className='h-screen w-1/4 overflow-y-auto'>
                                     <ul className="divide-y dark:divide-gray-100 divide-gray-100 px-6 dark:bg-gray-800 bg-gray-100">
                                         <h2 className="text-3xl font-bold dark:text-white text-gray-700 py-8 sm:py-12 lg:py-8 border-b-2 border-gray-500">Notifications</h2>
                                         {userNotification.map((person) => (
